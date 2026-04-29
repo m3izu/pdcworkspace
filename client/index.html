@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PDC PIT YAWA — A virtual space with proximity video chat.">
+  <title>PDC PIT YAWA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+
+  <!-- LANDING -->
+  <div id="screen-landing" class="screen active">
+    <div class="landing-container">
+      <div class="landing-hero">
+        <div class="logo-glow"></div>
+        <h1 class="logo-text">PDC PIT<span class="logo-accent"> YAWA</span></h1>
+        <p class="tagline">A virtual space to meet, chat &amp; hang out</p>
+      </div>
+      <div class="landing-actions">
+        <button id="btn-create" class="btn btn-primary btn-large">
+          <span class="btn-icon">🏠</span>
+          <span class="btn-content"><span class="btn-title">Create Lobby</span><span class="btn-subtitle">Choose a map and invite friends</span></span>
+        </button>
+        <button id="btn-join" class="btn btn-secondary btn-large">
+          <span class="btn-icon">🚪</span>
+          <span class="btn-content"><span class="btn-title">Join Lobby</span><span class="btn-subtitle">Enter a 4-digit code to join</span></span>
+        </button>
+      </div>
+      <div class="landing-footer"><span class="footer-badge">v1.0 MVP</span></div>
+    </div>
+  </div>
+
+  <!-- MAP SELECT -->
+  <div id="screen-map-select" class="screen">
+    <div class="panel-container">
+      <button class="btn-back" id="btn-back-map">← Back</button>
+      <h2 class="panel-title">Choose a Map</h2>
+      <p class="panel-subtitle">Select a space for your lobby</p>
+      <div class="map-grid">
+        <div class="map-card" data-map="office">
+          <div class="map-preview map-preview-office"><span class="map-emoji">🏢</span></div>
+          <div class="map-info"><h3>USTP</h3><p>Desks, meeting rooms &amp; coffee corner</p></div>
+        </div>
+        <div class="map-card" data-map="lounge">
+          <div class="map-preview map-preview-lounge"><span class="map-emoji">🌿</span></div>
+          <div class="map-info"><h3>Balay ni Aldwyn</h3><p>Cozy sofas, plants &amp; warm vibes</p></div>
+        </div>
+        <div class="map-card" data-map="campus">
+          <div class="map-preview map-preview-campus"><span class="map-emoji">🏫</span></div>
+          <div class="map-info"><h3>Tiyan ni Rafi</h3><p>Classrooms, library &amp; open yard</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AVATAR SELECT -->
+  <div id="screen-avatar" class="screen">
+    <div class="panel-container">
+      <button class="btn-back" id="btn-back-avatar">← Back</button>
+      <h2 class="panel-title">Choose Your Character</h2>
+      <p class="panel-subtitle">Pick an avatar and enter your name</p>
+      <div class="avatar-grid" id="avatar-grid"></div>
+      <div class="name-input-group">
+        <input type="text" id="input-name" class="input-field" placeholder="Enter your name..." maxlength="16" autocomplete="off">
+      </div>
+      <button id="btn-enter" class="btn btn-primary btn-full" disabled>Enter Lobby</button>
+    </div>
+  </div>
+
+  <!-- JOIN CODE -->
+  <div id="screen-join" class="screen">
+    <div class="panel-container">
+      <button class="btn-back" id="btn-back-join">← Back</button>
+      <h2 class="panel-title">Join a Lobby</h2>
+      <p class="panel-subtitle">Enter the 4-digit lobby code</p>
+      <div class="code-input-group">
+        <input type="text" id="input-code-0" class="code-digit" maxlength="1" inputmode="numeric" autocomplete="off">
+        <input type="text" id="input-code-1" class="code-digit" maxlength="1" inputmode="numeric" autocomplete="off">
+        <input type="text" id="input-code-2" class="code-digit" maxlength="1" inputmode="numeric" autocomplete="off">
+        <input type="text" id="input-code-3" class="code-digit" maxlength="1" inputmode="numeric" autocomplete="off">
+      </div>
+      <div id="join-error" class="error-message" style="display: none;"></div>
+      <button id="btn-next-join" class="btn btn-primary btn-full" disabled>Next →</button>
+    </div>
+  </div>
+
+  <!-- GAME -->
+  <div id="screen-game" class="screen">
+    <div id="lobby-code-display" class="lobby-code-badge">
+      <span class="code-label">Code:</span>
+      <span class="code-value" id="lobby-code-value"></span>
+      <button class="code-copy" id="btn-copy-code" title="Copy code">📋</button>
+    </div>
+    <div id="player-count" class="player-count-badge"><span id="player-count-value">1</span>/5</div>
+    <div id="game-container"></div>
+    <div id="video-panel" class="video-panel"></div>
+    <div id="chat-panel" class="chat-panel collapsed">
+      <button id="btn-toggle-chat" class="chat-toggle">💬 Chat <span id="chat-badge" class="chat-badge" style="display:none;">0</span></button>
+      <div class="chat-body">
+        <div id="chat-messages" class="chat-messages"></div>
+        <div class="chat-input-row">
+          <input type="text" id="input-chat" class="chat-input" placeholder="Type a message..." maxlength="500" autocomplete="off">
+          <button id="btn-send-chat" class="btn-send">▶</button>
+        </div>
+      </div>
+    </div>
+    <button id="btn-leave" class="btn-leave" title="Leave lobby">✕</button>
+  </div>
+
+  <!-- DISCONNECTED -->
+  <div id="screen-disconnected" class="screen">
+    <div class="panel-container">
+      <div class="disconnect-icon">😵</div>
+      <h2 class="panel-title" id="disconnect-title">Disconnected</h2>
+      <p class="panel-subtitle" id="disconnect-message">You have been disconnected.</p>
+      <button id="btn-go-home" class="btn btn-primary btn-full">Back to Home</button>
+    </div>
+  </div>
+
+  <script src="js/app.js" type="module"></script>
+</body>
+</html>
