@@ -17,17 +17,7 @@ export class ChatManager {
   }
 
   _bindEvents() {
-    // Toggle chat
-    document.getElementById('btn-toggle-chat').addEventListener('click', () => {
-      this.isOpen = !this.isOpen;
-      this.panel.classList.toggle('collapsed', !this.isOpen);
-      if (this.isOpen) {
-        this.unreadCount = 0;
-        this.badgeEl.style.display = 'none';
-        this.inputEl.focus();
-        this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
-      }
-    });
+    this.isOpen = true; // Always open in invisible mode
 
     // Send message
     const send = () => {
@@ -39,13 +29,23 @@ export class ChatManager {
 
     document.getElementById('btn-send-chat').addEventListener('click', send);
     this.inputEl.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') send();
-      // Prevent game from capturing these keys
+      if (e.key === 'Enter') {
+        send();
+        this.inputEl.blur(); // Hide chat box again
+      }
       e.stopPropagation();
     });
     // Prevent WASD from moving player while typing
     this.inputEl.addEventListener('keyup', (e) => e.stopPropagation());
     this.inputEl.addEventListener('keypress', (e) => e.stopPropagation());
+
+    // Global Enter key to focus chat
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && document.activeElement !== this.inputEl) {
+        this.inputEl.focus();
+        e.preventDefault();
+      }
+    });
   }
 
   addMessage(msg) {
@@ -63,13 +63,6 @@ export class ChatManager {
 
     this.messagesEl.appendChild(div);
     this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
-
-    // Update badge if chat is closed
-    if (!this.isOpen) {
-      this.unreadCount++;
-      this.badgeEl.textContent = this.unreadCount;
-      this.badgeEl.style.display = 'inline';
-    }
   }
 
   _escapeHtml(text) {

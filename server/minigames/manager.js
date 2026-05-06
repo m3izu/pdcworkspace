@@ -3,6 +3,7 @@ const checkers   = require('./checkers');
 const battleship = require('./battleship');
 const tongits    = require('./tongits');
 const uno        = require('./uno');
+const poker      = require('./poker');
 
 class MinigameManager {
   constructor(io, lobbyManager) {
@@ -16,6 +17,7 @@ class MinigameManager {
       [battleship.id]: battleship,
       [tongits.id]:    tongits,
       [uno.id]:        uno,
+      [poker.id]:      poker,
     };
 
     // State tracking per lobby
@@ -233,6 +235,11 @@ class MinigameManager {
 
   // Sanitize state so each player only sees their own hand
   _sanitizeState(gameId, gameState, role) {
+    const game = this.games[gameId];
+    if (game && game.getSanitizedState) {
+      return game.getSanitizedState(gameState, role);
+    }
+
     if (!gameState.hands) return gameState;
     // Only sanitize card games (tongits, uno, etc.)
     if (gameId !== 'tongits' && gameId !== 'uno') return gameState;

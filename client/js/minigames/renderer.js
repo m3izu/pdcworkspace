@@ -3,6 +3,7 @@ import checkers   from './checkers.js';
 import battleship from './battleship.js';
 import tongits    from './tongits.js';
 import uno        from './uno.js';
+import * as poker from './poker.js';
 
 class MinigameRenderer {
   constructor() {
@@ -12,6 +13,12 @@ class MinigameRenderer {
       [battleship.id]: battleship,
       [tongits.id]:    tongits,
       [uno.id]:        uno,
+      poker:           {
+        id: 'poker',
+        name: "Texas Hold'em",
+        render: poker.createPokerUI,
+        update: (container, state, myRole) => { if (container._pokerUpdate) container._pokerUpdate(state); }
+      }
     };
 
     this.activeGameId = null;

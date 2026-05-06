@@ -7,20 +7,28 @@ const SUIT_COLORS = { '♠': '#1a1a2e', '♣': '#1a1a2e', '♥': '#e74c3c', '♦
 
 function cid(card) { return `${card.rank}${card.suit}`; }
 
+function getSpriteUrl(card, isBack = false) {
+  if (isBack) return 'assets/cards/back_dark.png';
+  if (!card) return '';
+  const rankMap = { 'J': 'J', 'Q': 'Q', 'K': 'K', 'A': 'A' };
+  const suitMap = { '♠': 'spades', '♣': 'clubs', '♥': 'hearts', '♦': 'diamonds' };
+  const filename = `${suitMap[card.suit]}_${rankMap[card.rank] || card.rank}.png`;
+  return `assets/cards/${filename}`;
+}
+
 function renderCard(card, selected, isNew) {
-  const color = SUIT_COLORS[card.suit] || '#000';
+  const url = getSpriteUrl(card);
   const sel = selected ? ' selected' : '';
   const glow = isNew ? ' new-card' : '';
-  return `<div class="ti-card${sel}${glow}" data-card="${cid(card)}" style="color:${color}">
-    <span class="ti-rank">${card.rank}</span>
-    <span class="ti-suit">${card.suit}</span>
+  return `<div class="ti-card${sel}${glow}" data-card="${cid(card)}" style="padding:0; background:none; box-shadow:none; border:none; width: 60px; height: 84px;">
+    <img src="${url}" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5)); border-radius: 5px;">
   </div>`;
 }
 
 function renderMeld(meld, meldIdx) {
   const cards = meld.cards.map(c =>
-    `<div class="ti-card mini" data-meld="${meldIdx}" style="color:${SUIT_COLORS[c.suit]||'#000'}">
-      <span class="ti-rank">${c.rank}</span><span class="ti-suit">${c.suit}</span>
+    `<div class="ti-card mini" data-meld="${meldIdx}" style="padding:0; background:none; box-shadow:none; border:none; width: 40px; height: 56px;">
+      <img src="${getSpriteUrl(c)}" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); border-radius: 3px;">
     </div>`
   ).join('');
   return `<div class="ti-meld" data-meld-idx="${meldIdx}">
@@ -102,18 +110,19 @@ export default {
               <div class="ti-pile-group">
                 <div class="ti-pile-label">Stock (${cur.stock.length})</div>
                 <div class="ti-stock ${isMyTurn && phase === 'draw' ? 'clickable' : ''}" id="ti-stock">
-                  <div class="ti-card back">🂠</div>
+                  <div class="ti-card back" style="padding:0; background:none; box-shadow:none; border:none; width: 60px; height: 84px;">
+                    <img src="${getSpriteUrl(null, true)}" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5)); border-radius: 5px;">
+                  </div>
                 </div>
               </div>
               <div class="ti-pile-group">
                 <div class="ti-pile-label">Discard (${cur.discard.length})</div>
                 <div class="ti-discard ${isMyTurn && phase === 'draw' && topDiscard ? 'clickable' : ''}" id="ti-discard">
                   ${topDiscard
-                    ? `<div class="ti-card" style="color:${SUIT_COLORS[topDiscard.suit]}">
-                        <span class="ti-rank">${topDiscard.rank}</span>
-                        <span class="ti-suit">${topDiscard.suit}</span>
+                    ? `<div class="ti-card" style="padding:0; background:none; box-shadow:none; border:none; width: 60px; height: 84px;">
+                        <img src="${getSpriteUrl(topDiscard)}" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5)); border-radius: 5px;">
                       </div>`
-                    : '<div class="ti-card empty">—</div>'}
+                    : '<div class="ti-card empty" style="width: 60px; height: 84px; background: rgba(0,0,0,0.2); border: 2px dashed rgba(255,255,255,0.2);"></div>'}
                 </div>
               </div>
             </div>

@@ -15,13 +15,18 @@ const state = {
   socket: null,
   mode: null,       // 'create' or 'join'
   selectedMap: null,
-  selectedAvatar: null,
+  selectedAvatar: 0,
   playerName: '',
   lobbyCode: null,
   isHost: false,
   lobby: null,
-  proximityManager: null,
   chatManager: null,
+  proximityManager: null,
+};
+
+window.APP_SETTINGS = {
+  chatBubbles: true,
+  videoTiles: true
 };
 
 // ── Screen Management ────────────────────────────
@@ -42,6 +47,35 @@ function showToast(text, type = '') {
   toast.textContent = text;
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 3000);
+  setupSettingsMenu();
+}
+
+function setupSettingsMenu() {
+  const btnSettings = document.getElementById('btn-settings');
+  const btnCloseSettings = document.getElementById('btn-close-settings');
+  const overlay = document.getElementById('settings-overlay');
+  
+  const toggleChat = document.getElementById('toggle-chat-bubbles');
+  const toggleVideo = document.getElementById('toggle-video-tiles');
+  const videoPanel = document.getElementById('video-panel');
+
+  if (btnSettings && overlay) {
+    btnSettings.addEventListener('click', () => overlay.style.display = 'flex');
+    btnCloseSettings.addEventListener('click', () => overlay.style.display = 'none');
+  }
+
+  if (toggleChat) {
+    toggleChat.addEventListener('change', (e) => {
+      window.APP_SETTINGS.chatBubbles = e.target.checked;
+    });
+  }
+
+  if (toggleVideo && videoPanel) {
+    toggleVideo.addEventListener('change', (e) => {
+      window.APP_SETTINGS.videoTiles = e.target.checked;
+      videoPanel.style.display = e.target.checked ? 'flex' : 'none';
+    });
+  }
 }
 
 // ── Socket Setup ─────────────────────────────────
@@ -107,6 +141,7 @@ function initSocket() {
     if (state.chatManager) {
       state.chatManager.addMessage(msg);
     }
+    window.dispatchEvent(new CustomEvent('lobby:chat-message', { detail: msg }));
   });
 
   return socket;
@@ -180,6 +215,8 @@ function clearCodeInput() {
 // ── Player Count ─────────────────────────────────
 function updatePlayerCount(count) {
   document.getElementById('player-count-value').textContent = count;
+  const diPlayers = document.getElementById('di-players-val');
+  if (diPlayers) diPlayers.textContent = `${count}/5`;
 }
 
 // ── Cleanup ──────────────────────────────────────
@@ -200,6 +237,9 @@ function enterGame(lobbyData) {
 
   // Update UI
   document.getElementById('lobby-code-value').textContent = lobbyData.code;
+  const diCode = document.getElementById('di-code-val');
+  if (diCode) diCode.textContent = lobbyData.code;
+  
   updatePlayerCount(lobbyData.players.length);
 
   // Show game screen

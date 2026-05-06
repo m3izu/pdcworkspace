@@ -534,13 +534,16 @@ body {
 .minigame-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(10, 14, 26, 0.85);
-  backdrop-filter: blur(8px);
-  z-index: 150;
+  background: rgba(10, 14, 26, 0.92);
+  backdrop-filter: blur(10px);
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
   animation: fadeIn 0.3s ease;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px;
 }
 
 /* ── Game Instructions Panel ──────────────────── */
@@ -588,6 +591,9 @@ body {
   padding: 32px;
   width: 100%;
   max-width: 540px;
+  max-height: 90vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1514,4 +1520,439 @@ body {
 @keyframes readyPulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
+}
+
+
+/* ═══════════════════════════════════════════════════
+   MOBILE & UX OVERHAUL
+   ═══════════════════════════════════════════════════ */
+
+/* ── RESPONSIVE: Small screens (≤768px) ───────── */
+@media (max-width: 768px) {
+  /* Lobby & Join screens */
+  .panel-container { padding: 20px; margin: 12px; }
+  .hero-title { font-size: 2rem; }
+  .hero-subtitle { font-size: 0.85rem; }
+  .avatar-option { width: 56px; height: 56px; }
+  .avatar-option img { width: 44px; height: 44px; }
+
+  /* HUD badges */
+  .lobby-code-badge { top: 8px; left: 8px; padding: 6px 10px; font-size: 0.75rem; }
+  .player-count-badge { top: 8px; left: auto; right: 8px; padding: 6px 10px; font-size: 0.75rem; }
+  .btn-leave { top: auto; bottom: 8px; right: 8px; width: 36px; height: 36px; font-size: 0.8rem; }
+
+  /* Video panel */
+  .video-panel { top: 8px; right: 8px; }
+  .video-tile { width: 100px; height: 75px; }
+
+  /* Chat panel */
+  .chat-panel { width: calc(100vw - 32px); left: 16px; bottom: 8px; }
+  .chat-body { max-height: 30vh; }
+
+  /* Minigame overlay & card */
+  .minigame-overlay { padding: 8px; align-items: flex-start; }
+  .minigame-card { padding: 16px; border-radius: 16px; max-width: 100%; max-height: 100%; gap: 12px; }
+  .minigame-title { font-size: 1.2rem; }
+
+  /* Tic-Tac-Toe */
+  .ttt-cell { width: 70px; height: 70px; font-size: 2.4rem; }
+  .ttt-status { font-size: 1rem; }
+
+  /* Checkers */
+  .chk-cell { width: 36px; height: 36px; }
+  .chk-piece { width: 28px; height: 28px; font-size: 0.9rem; }
+
+  /* Battleship */
+  .bs-cell { width: 20px; height: 20px; }
+  .bs-battle-grids { gap: 8px; }
+  .bs-grid-label { font-size: 0.65rem; }
+  .bs-ship-selector { gap: 6px; }
+  .bs-ship-item { padding: 4px 6px; }
+
+  /* Tongits */
+  .tongits-container { gap: 6px; }
+  .ti-card { width: 40px; height: 56px; font-size: 12px; }
+  .ti-card.mini { width: 28px; height: 38px; font-size: 9px; }
+  .ti-stock, .ti-discard { width: 46px; height: 64px; }
+  .ti-btn { padding: 6px 10px; font-size: 10px; }
+
+  /* UNO */
+  .uno-container { gap: 6px; }
+  .uno-card { width: 44px; height: 64px; }
+  .uno-hand { gap: 2px; padding: 6px; }
+  .uno-btn { padding: 6px 10px; font-size: 10px; }
+  .uno-color-btn { width: 38px; height: 38px; }
+
+  /* Ready lobby */
+  .ready-toggle-btn { padding: 10px 20px !important; font-size: 14px !important; }
+}
+
+/* ── RESPONSIVE: Very small screens (≤480px) ──── */
+@media (max-width: 480px) {
+  .ttt-cell { width: 60px; height: 60px; font-size: 2rem; }
+  .chk-cell { width: 30px; height: 30px; }
+  .chk-piece { width: 22px; height: 22px; font-size: 0.7rem; }
+  .bs-cell { width: 16px; height: 16px; }
+  .ti-card { width: 34px; height: 48px; font-size: 10px; }
+  .ti-card.mini { width: 24px; height: 32px; font-size: 8px; }
+  .uno-card { width: 38px; height: 56px; }
+  .minigame-card { padding: 12px; gap: 8px; }
+  .minigame-title { font-size: 1rem; }
+  .game-instructions summary { padding: 8px 10px; font-size: 0.75rem; }
+  .game-instructions ul { padding: 8px 12px 8px 24px; font-size: 0.72rem; }
+}
+
+
+/* ── Mobile Controls ──────────────────────────── */
+.mobile-controls {
+  position: fixed;
+  inset: 0;
+  pointer-events: none; /* Let clicks pass through except on our children */
+  z-index: 120; /* Above chat, below overlay */
+}
+
+.joystick-zone {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  width: 150px;
+  height: 150px;
+  pointer-events: auto;
+}
+
+.btn-mobile-action {
+  position: absolute;
+  bottom: 40px;
+  right: 20px;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 800;
+  border: 4px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  pointer-events: auto;
+  user-select: none;
+  transition: transform 0.1s;
+  animation: pulse 1.5s infinite;
+}
+.btn-mobile-action:active {
+  transform: scale(0.9);
+  background: var(--accent-hover);
+}
+
+
+/* ── Settings Menu ────────────────────────────── */
+.btn-settings {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 105;
+  transition: all 0.3s;
+}
+.btn-settings:hover { background: rgba(255, 255, 255, 0.1); transform: rotate(45deg); }
+
+.settings-overlay {
+  position: fixed; inset: 0;
+  background: rgba(10, 14, 26, 0.6);
+  backdrop-filter: blur(8px);
+  z-index: 99999;
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeIn 0.3s ease;
+}
+
+.settings-card {
+  background: linear-gradient(145deg, var(--bg-card), var(--bg-secondary));
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  width: 100%; max-width: 380px;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+  display: flex; flex-direction: column; gap: 24px;
+}
+
+.settings-header {
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  padding-bottom: 16px;
+}
+.settings-title { font-size: 1.4rem; font-weight: 800; color: var(--accent-light); margin: 0; }
+.btn-close-settings {
+  background: transparent; border: none; color: var(--text-secondary);
+  font-size: 1.5rem; cursor: pointer; transition: color 0.2s;
+}
+.btn-close-settings:hover { color: #fff; }
+
+.settings-body { display: flex; flex-direction: column; gap: 16px; }
+
+.settings-toggle {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 1rem; color: var(--text-primary); font-weight: 500;
+  cursor: pointer;
+}
+.settings-toggle input { display: none; }
+.toggle-slider {
+  width: 44px; height: 24px; background: rgba(255,255,255,0.1);
+  border-radius: 12px; position: relative; transition: 0.3s;
+}
+.toggle-slider::before {
+  content: ""; position: absolute; top: 2px; left: 2px;
+  width: 20px; height: 20px; background: #fff; border-radius: 50%;
+  transition: 0.3s;
+}
+.settings-toggle input:checked + .toggle-slider { background: var(--success); }
+.settings-toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+/* Adjust video panel position so it doesn't overlap gear icon */
+.video-panel { right: 70px; }
+@media (max-width: 768px) {
+  .btn-settings { top: 8px; right: 8px; width: 36px; height: 36px; font-size: 1rem; }
+  .video-panel { right: 55px; top: 8px; }
+}
+
+/* ═══════════════════════════════════════════════════
+   CREATIVE DIRECTOR UI/UX OVERHAUL (PHASE 1)
+   ═══════════════════════════════════════════════════ */
+
+/* ── 1. The Dynamic Island HUD ────────────────── */
+.dynamic-island {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(10, 14, 26, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 30px;
+  color: #fff;
+  z-index: 9000;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.di-collapsed-view {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 20px;
+  opacity: 1;
+  transition: opacity 0.2s;
+  cursor: default;
+}
+.di-code { font-weight: 800; letter-spacing: 2px; color: var(--accent-light); }
+.di-players { font-size: 0.85rem; color: var(--success); font-weight: 600; }
+
+.di-expanded-view {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  width: 280px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.dynamic-island:hover {
+  border-radius: 24px;
+}
+.dynamic-island:hover .di-collapsed-view { display: none; opacity: 0; }
+.dynamic-island:hover .di-expanded-view { display: flex; opacity: 1; }
+
+.di-row { display: flex; align-items: center; justify-content: space-between; }
+.di-label { font-size: 0.85rem; color: rgba(255,255,255,0.6); }
+.di-value { font-weight: 800; font-size: 1.1rem; }
+.di-btn { background: none; border: none; cursor: pointer; transition: 0.2s; font-size: 1.2rem; }
+.di-btn:hover { transform: scale(1.1); }
+.di-actions { display: flex; gap: 8px; margin-top: 8px; }
+.di-action-btn { 
+  flex: 1; padding: 10px; border-radius: 12px; border: none; cursor: pointer; 
+  background: rgba(255,255,255,0.1); color: #fff; font-weight: 600; transition: 0.2s; 
+}
+.di-action-btn:hover { background: rgba(255,255,255,0.2); }
+.di-action-btn.danger:hover { background: var(--danger); color: #fff; }
+
+/* Hide old badges to prevent duplicate UI */
+.lobby-code-badge, .player-count-badge, .btn-settings, .btn-leave { display: none !important; }
+
+/* ── 2. Cinematic Focus Mode (Minigames) ──────── */
+.minigame-overlay {
+  background: rgba(5, 8, 15, 0.4) !important;
+  backdrop-filter: blur(24px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
+}
+
+.minigame-card {
+  background: rgba(20, 25, 40, 0.6) !important;
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 40px 100px rgba(0,0,0,0.8) !important;
+  animation: slideUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(40px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── 3. Circular Video Dock ───────────────────── */
+.video-panel.floating-dock {
+  top: auto; bottom: 20px; right: 20px; gap: 12px; flex-direction: column-reverse;
+}
+.video-tile {
+  width: 110px !important; height: 110px !important;
+  border-radius: 50% !important;
+  border: 3px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  transition: all 0.3s;
+}
+.video-tile:hover { transform: scale(1.05); border-color: var(--accent); }
+.video-tile-name {
+  background: transparent !important; text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+  bottom: 15px !important;
+}
+
+/* ── 4. Invisible Chat UI ─────────────────────── */
+.invisible-chat {
+  background: transparent !important;
+  border: none !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+  width: 380px !important;
+  left: 20px !important;
+  bottom: 20px !important;
+}
+.invisible-chat .chat-toggle { display: none !important; }
+.invisible-chat .chat-body { display: flex !important; }
+.invisible-chat .chat-messages {
+  background: transparent !important;
+  border: none !important;
+  max-height: 250px;
+  mask-image: linear-gradient(to top, black 80%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to top, black 80%, transparent 100%);
+  display: flex; flex-direction: column; align-items: flex-start;
+}
+.invisible-chat .chat-message {
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(4px);
+  border-radius: 12px; margin-bottom: 6px; padding: 6px 12px;
+  display: inline-block; clear: both; float: left;
+}
+.invisible-chat .chat-input-row {
+  background: rgba(0,0,0,0.6) !important;
+  backdrop-filter: blur(12px);
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  padding: 4px 8px !important;
+  opacity: 0.3; transition: 0.3s;
+}
+.invisible-chat .chat-input-row:focus-within { opacity: 1; }
+.invisible-chat .chat-input { background: transparent !important; }
+
+/* ── 5. Transparent Mobile Controls ───────────── */
+.mobile-controls { z-index: 8000; }
+.joystick-zone { opacity: 0.2; transition: opacity 0.3s; }
+.joystick-zone:active { opacity: 1; }
+.btn-mobile-action { opacity: 0.4; transition: all 0.3s; }
+.btn-mobile-action:active { opacity: 1; transform: scale(0.9); }
+
+/* ═══════════════════════════════════════════════════
+   CREATIVE DIRECTOR UI/UX OVERHAUL (PHASE 2)
+   ═══════════════════════════════════════════════════ */
+
+/* ── 3D Card Hover Effects ────────────────────── */
+.uno-card, .ti-card {
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s !important;
+  transform-style: preserve-3d;
+}
+.uno-card:hover, .ti-card:hover {
+  transform: perspective(600px) rotateX(10deg) rotateY(-5deg) scale(1.1) translateY(-10px) !important;
+  box-shadow: -5px 15px 30px rgba(0,0,0,0.5) !important;
+  z-index: 100;
+}
+
+/* ── Custom Cursor ────────────────────────────── */
+body {
+  cursor: crosshair; /* Fallback */
+  cursor: url('data:image/svg+xml;utf8,<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="4" fill="white" stroke="rgba(0,0,0,0.5)" stroke-width="1"/><circle cx="12" cy="12" r="10" stroke="white" stroke-width="1.5" stroke-dasharray="2 4"/></svg>') 12 12, auto;
+}
+.btn, button, .chat-input, .avatar-option, .ti-card, .uno-card, .ttt-cell, .chk-cell, .bs-cell {
+  cursor: pointer;
+  cursor: url('data:image/svg+xml;utf8,<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="6" fill="%236c5ce7" stroke="white" stroke-width="2"/></svg>') 12 12, pointer;
+}
+
+/* ── Lobby Fade-in Transition ─────────────────── */
+.screen {
+  opacity: 0;
+  animation: fadeInScreen 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+@keyframes fadeInScreen {
+  from { opacity: 0; transform: scale(0.98); filter: blur(10px); }
+  to { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+
+/* ── Haptic Buttons ───────────────────────────── */
+button { transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1); }
+button:active { transform: scale(0.92) !important; }
+
+/* ═══════════════════════════════════════════════════
+   BUGFIXES (VISUAL & UX)
+   ═══════════════════════════════════════════════════ */
+
+/* Fix invisible chat blocking map clicks */
+.invisible-chat {
+  pointer-events: none !important;
+}
+.invisible-chat .chat-input-row,
+.invisible-chat .chat-messages {
+  pointer-events: auto !important;
+}
+
+/* Fix 3D cards getting clipped by adjacent cards */
+.uno-card, .ti-card {
+  position: relative !important;
+}
+
+/* Fix chat messages scrolling bug by ensuring overflow is auto */
+.invisible-chat .chat-messages {
+  overflow-y: auto !important;
+  pointer-events: auto !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   BUGFIXES (MOBILE OVERFLOW)
+   ═══════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .invisible-chat {
+    width: 90% !important;
+    left: 5% !important;
+    bottom: 5px !important;
+  }
+  
+  .dynamic-island {
+    width: 90% !important;
+    border-radius: 20px !important;
+  }
+  
+  .di-expanded-view {
+    width: 100% !important;
+  }
 }

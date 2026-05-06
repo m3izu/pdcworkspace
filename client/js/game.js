@@ -53,6 +53,7 @@ const MAPS = {
       { game: 'checkers',   tiles: [{x: 0, y: 19}, {x: 3, y: 19}], color: 0x00cec9 },
       { game: 'tongits',    tiles: [{x: 16, y: 13}, {x: 18, y: 13}, {x: 17, y: 16}], color: 0xfdcb6e },
       { game: 'uno',        tiles: [{x: 16, y: 6}, {x: 16, y: 7}, {x: 17, y: 4}, {x: 19, y: 4}, {x: 20, y: 6}], color: 0xd63031 },
+      { game: 'poker',      tiles: [{x: 5, y: 5}, {x: 5, y: 6}, {x: 3, y: 8}, {x: 1, y: 5}, {x: 1, y: 6}], color: 0x0984e3 },
     ]
   },
   lounge: { name: 'Balay ni Aldwyn', width: 22, height: 18, color: 0x0a3d2e, floorColor: 0x2d6a4f },
@@ -63,6 +64,9 @@ class GameScene extends Phaser.Scene {
   constructor() {
     super({ key: 'GameScene' });
     this.remotePlayers = new Map();
+    this.nameTexts = new Map();
+    this.chatBubbles = new Map();
+    this.collisionLayers = [];
     this.config = null;
     this.myPlayer = null;
     this.cursors = null;
@@ -231,12 +235,7 @@ class GameScene extends Phaser.Scene {
         const cx = ((minX + maxX) / 2) * TILE_SIZE + TILE_SIZE / 2;
         const cy = ((minY + maxY) / 2) * TILE_SIZE + TILE_SIZE / 2;
 
-        const label = this.add.text(cx, cy, trigger.game.toUpperCase(), {
-          fontSize: '9px', fontFamily: 'Inter, sans-serif', fontStyle: 'bold',
-          color: '#ffffff', backgroundColor: 'rgba(0,0,0,0.5)',
-          padding: { x: 4, y: 2 },
-        }).setOrigin(0.5).setDepth(2);
-
+        // No text label for trigger zones - keep it clean
         this.triggerZones.push({
           game: trigger.game,
           cx, cy,
@@ -247,12 +246,23 @@ class GameScene extends Phaser.Scene {
       }
     }
 
-    // HUD prompt (fixed to camera)
+    // Diegetic Prompt (floats near player)
     this.triggerPrompt = this.add.text(0, 0, '', {
-      fontSize: '14px', fontFamily: 'Inter, sans-serif', fontStyle: 'bold',
+      fontSize: '11px', fontFamily: 'Inter, sans-serif', fontStyle: 'bold',
       color: '#ffffff', backgroundColor: 'rgba(0,0,0,0.7)',
-      padding: { x: 12, y: 6 },
-    }).setOrigin(0.5).setDepth(100).setScrollFactor(0).setVisible(false);
+      padding: { x: 8, y: 4 },
+    }).setOrigin(0.5).setDepth(100).setVisible(false);
+
+    // Add slight stroke for diegetic feel
+    this.triggerPrompt.setStroke('#ffffff', 1);
+
+    this.triggerPrompt.setInteractive({ useHandCursor: true });
+    this.triggerPrompt.on('pointerdown', () => {
+      if (this.nearbyTrigger && !this.triggerPrompt.text.includes('Queued')) {
+        this.config.socket.emit('minigame:queue', { gameId: this.nearbyTrigger.game });
+        this.triggerPrompt.setText(`Queued for ${this.nearbyTrigger.game.toUpperCase()} — waiting...`);
+      }
+    });
 
     // E key for interaction
     this.interactKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
@@ -270,6 +280,18 @@ class GameScene extends Phaser.Scene {
 
     const myName = myData ? myData.name : 'You';
     this._addNameTag(this.config.mySocketId, this.myPlayer, myName);
+
+    // ── Player Identity Indicator ("You") ─────────
+    this.youIndicator = this.add.triangle(0, 0, 0, -6, 6, -16, -6, -16, 0x00e676);
+    this.youIndicator.setDepth(15);
+    this.tweens.add({
+      targets: this.youIndicator,
+      y: '+=4',
+      duration: 600,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
 
     // Camera
     this.cameras.main.startFollow(this.myPlayer, true, 0.1, 0.1);
@@ -298,8 +320,58 @@ class GameScene extends Phaser.Scene {
     window.addEventListener('lobby:player-joined', this._onPlayerJoined);
     window.addEventListener('lobby:player-left',   this._onPlayerLeft);
     window.addEventListener('lobby:player-moved',  this._onPlayerMoved);
+    window.addEventListener('lobby:chat-message',  this._onChatMessage);
+
+    this._setupMobileControls();
 
     window.__gameScene = this;
+  }
+
+  _setupMobileControls() {
+    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    if (!isTouch) return;
+
+    this.joystickVector = { x: 0, y: 0 };
+    this.mobileInteractBtn = document.getElementById('btn-mobile-action');
+    const controlsWrap = document.getElementById('mobile-controls');
+    const zone = document.getElementById('joystick-zone');
+
+    if (controlsWrap && zone) {
+      controlsWrap.style.display = 'block';
+
+      if (window.nipplejs) {
+        this.joystick = window.nipplejs.create({
+          zone: zone,
+          mode: 'static',
+          position: { left: '50%', top: '50%' },
+          color: 'white',
+          size: 100
+        });
+
+        this.joystick.on('move', (evt, data) => {
+          if (data.vector) {
+            this.joystickVector.x = data.vector.x;
+            this.joystickVector.y = -data.vector.y; // nipple y is inverted
+          }
+        });
+
+        this.joystick.on('end', () => {
+          this.joystickVector.x = 0;
+          this.joystickVector.y = 0;
+        });
+      }
+
+      if (this.mobileInteractBtn) {
+        this.mobileInteractBtn.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          if (this.nearbyTrigger && !this.triggerPrompt.text.includes('Queued')) {
+            this.config.socket.emit('minigame:queue', { gameId: this.nearbyTrigger.game });
+            this.triggerPrompt.setText(`Queued for ${this.nearbyTrigger.game.toUpperCase()} — waiting...`);
+            this.mobileInteractBtn.style.display = 'none';
+          }
+        }, { passive: false });
+      }
+    }
   }
 
   _addWallRect(group, x, y, color) {
@@ -322,6 +394,9 @@ class GameScene extends Phaser.Scene {
       sprite.play(`${avatar.key}-idle`);
       sprite._avatarKey = avatar.key;
       sprite._isAnimated = true;
+      
+      // Shadow
+      sprite._shadow = this.add.ellipse(x, y + 14, 20, 8, 0x000000, 0.4).setDepth(1);
     } else {
       // ── Fallback: colored circle with initial ────
       const color = Phaser.Display.Color.HexStringToColor(AVATAR_COLORS[avatarId] || AVATAR_COLORS[0]).color;
@@ -337,6 +412,9 @@ class GameScene extends Phaser.Scene {
         color: '#ffffff',
       }).setOrigin(0.5).setDepth(11);
       sprite._label = label;
+      
+      // Shadow
+      sprite._shadow = this.add.ellipse(x, y + 14, 20, 8, 0x000000, 0.4).setDepth(1);
     }
 
     if (isPhysics) {
@@ -418,11 +496,14 @@ class GameScene extends Phaser.Scene {
     const sprite = this.remotePlayers.get(id);
     if (sprite) {
       if (sprite._label) sprite._label.destroy();
+      if (sprite._shadow) sprite._shadow.destroy();
       sprite.destroy();
       this.remotePlayers.delete(id);
     }
     const nameTag = this.nameTexts.get(id);
     if (nameTag) { nameTag.destroy(); this.nameTexts.delete(id); }
+    const bubble = this.chatBubbles.get(id);
+    if (bubble) { bubble.destroy(); this.chatBubbles.delete(id); }
   };
 
   _onPlayerMoved = (e) => {
@@ -457,6 +538,76 @@ class GameScene extends Phaser.Scene {
     this.triggerInteract(socketId);
   };
 
+  _onChatMessage = (e) => {
+    const { senderId, text } = e.detail;
+    this._addChatBubble(senderId, text);
+  };
+
+  _addChatBubble(id, text) {
+    if (window.APP_SETTINGS && !window.APP_SETTINGS.chatBubbles) return;
+    
+    let sprite = id === this.config.mySocketId ? this.myPlayer : this.remotePlayers.get(id);
+    if (!sprite) return;
+
+    if (this.chatBubbles.has(id)) {
+      this.chatBubbles.get(id).destroy();
+    }
+
+    const maxLineLength = 20;
+    let wrappedText = '';
+    let currentLine = '';
+    const words = text.split(' ');
+    
+    for (let i = 0; i < words.length; i++) {
+      if ((currentLine + words[i]).length > maxLineLength) {
+        wrappedText += currentLine.trim() + '\n';
+        currentLine = '';
+      }
+      currentLine += words[i] + ' ';
+    }
+    wrappedText += currentLine.trim();
+
+    const bubble = this.add.text(sprite.x, sprite.y - 45, wrappedText, {
+      fontSize: '11px',
+      fontFamily: 'Inter, sans-serif',
+      color: '#000000',
+      backgroundColor: '#ffffff',
+      padding: { x: 8, y: 6 },
+      align: 'center',
+    }).setOrigin(0.5, 1).setDepth(20);
+
+    // Add a slight border radius effect using stroke
+    bubble.setStroke('#ffffff', 4);
+
+    // Fade in and float up slightly
+    bubble.setAlpha(0);
+    this.tweens.add({
+      targets: bubble,
+      alpha: 1,
+      y: sprite.y - 50,
+      duration: 200,
+      ease: 'Power2'
+    });
+
+    // Auto-destroy after 5 seconds
+    this.time.delayedCall(5000, () => {
+      this.tweens.add({
+        targets: bubble,
+        alpha: 0,
+        y: bubble.y - 10,
+        duration: 300,
+        onComplete: () => {
+          if (this.chatBubbles.get(id) === bubble) {
+            this.chatBubbles.delete(id);
+          }
+          bubble.destroy();
+        }
+      });
+    });
+
+    this.chatBubbles.set(id, bubble);
+  }
+
   update() {
     if (!this.myPlayer) return;
 
@@ -477,6 +628,17 @@ class GameScene extends Phaser.Scene {
     if (this.cursors.right.isDown || this.wasd.right.isDown) { vx =  speed; direction = 'right'; }
     if (this.cursors.up.isDown    || this.wasd.up.isDown)    { vy = -speed; direction = 'up';    }
     if (this.cursors.down.isDown  || this.wasd.down.isDown)  { vy =  speed; direction = 'down';  }
+
+    // Joystick overrides keyboard if active
+    if (this.joystickVector && (this.joystickVector.x !== 0 || this.joystickVector.y !== 0)) {
+      vx = this.joystickVector.x * speed;
+      vy = this.joystickVector.y * speed;
+      if (Math.abs(vx) > Math.abs(vy)) {
+        direction = vx > 0 ? 'right' : 'left';
+      } else {
+        direction = vy > 0 ? 'down' : 'up';
+      }
+    }
 
     this.myPlayer.body.setVelocity(vx, vy);
 
@@ -501,13 +663,33 @@ class GameScene extends Phaser.Scene {
     if (this.myPlayer._label) {
       this.myPlayer._label.setPosition(this.myPlayer.x, this.myPlayer.y);
     }
+    if (this.myPlayer._shadow) {
+      this.myPlayer._shadow.setPosition(this.myPlayer.x, this.myPlayer.y + 14);
+    }
 
     this.lastDirection = direction;
     this.isMoving = moving;
 
-    // Update name tag
+    // Update name tag and indicator
     const myTag = this.nameTexts.get(this.config.mySocketId);
     if (myTag) myTag.setPosition(this.myPlayer.x, this.myPlayer.y - 22);
+    
+    if (this.youIndicator) {
+      this.youIndicator.x = this.myPlayer.x;
+      // y is handled by tween, base offset applied relative to player
+      if (!this.youIndicator._baseY) this.youIndicator._baseY = this.myPlayer.y - 36;
+      else this.youIndicator._baseY = this.myPlayer.y - 36;
+      // The tween moves y from _baseY to _baseY + 4
+      this.youIndicator.y = this.youIndicator.y - this.youIndicator._lastBaseY + this.youIndicator._baseY || this.youIndicator._baseY;
+      this.youIndicator._lastBaseY = this.youIndicator._baseY;
+    }
+
+    // Update chat bubble
+    const myBubble = this.chatBubbles.get(this.config.mySocketId);
+    if (myBubble && !myBubble._isFading) {
+      myBubble.x = this.myPlayer.x;
+      myBubble.y = this.myPlayer.y - 50;
+    }
 
     // Emit position + direction if changed
     const dx = Math.abs(this.myPlayer.x - this.lastSentPos.x);
@@ -537,19 +719,30 @@ class GameScene extends Phaser.Scene {
 
       if (found) {
         this.nearbyTrigger = found;
-        const cam = this.cameras.main;
-        this.triggerPrompt.setPosition(cam.width / 2, cam.height - 60);
-        this.triggerPrompt.setText(`Press E to play ${found.game.toUpperCase()}`);
+        
+        // Diegetic prompt next to player
+        this.triggerPrompt.setPosition(this.myPlayer.x, this.myPlayer.y - 32);
+        
+        if (!this.triggerPrompt.text.includes('Queued')) {
+          this.triggerPrompt.setText(`Play ${found.game.toUpperCase()} [E]`);
+          if (this.mobileInteractBtn) this.mobileInteractBtn.style.display = 'block';
+        }
+        
         this.triggerPrompt.setVisible(true);
 
         if (Phaser.Input.Keyboard.JustDown(this.interactKey)) {
-          this.config.socket.emit('minigame:queue', { gameId: found.game });
-          this.triggerPrompt.setText(`Queued for ${found.game.toUpperCase()} — waiting for opponent...`);
+          if (!this.triggerPrompt.text.includes('Queued')) {
+            this.config.socket.emit('minigame:queue', { gameId: found.game });
+            this.triggerPrompt.setText(`Queued for ${found.game.toUpperCase()}...`);
+            if (this.mobileInteractBtn) this.mobileInteractBtn.style.display = 'none';
+          }
         }
       } else {
         if (this.nearbyTrigger) {
           this.nearbyTrigger = null;
           this.triggerPrompt.setVisible(false);
+          this.triggerPrompt.setText(''); // Reset text state to allow re-queueing
+          if (this.mobileInteractBtn) this.mobileInteractBtn.style.display = 'none';
           this.config.socket.emit('minigame:dequeue');
         }
       }
@@ -561,8 +754,15 @@ class GameScene extends Phaser.Scene {
         sprite.x = Phaser.Math.Linear(sprite.x, sprite._targetX, 0.15);
         sprite.y = Phaser.Math.Linear(sprite.y, sprite._targetY, 0.15);
         if (sprite._label) sprite._label.setPosition(sprite.x, sprite.y);
+        if (sprite._shadow) sprite._shadow.setPosition(sprite.x, sprite.y + 14);
         const tag = this.nameTexts.get(id);
         if (tag) tag.setPosition(sprite.x, sprite.y - 22);
+        
+        const bubble = this.chatBubbles.get(id);
+        if (bubble && !bubble._isFading) {
+          bubble.x = sprite.x;
+          bubble.y = sprite.y - 50;
+        }
       }
     }
   }
