@@ -12,6 +12,7 @@ const { ExpressPeerServer } = require('peer');
 const path = require('path');
 const cors = require('cors');
 const LobbyManager = require('./lobbyManager');
+const MinigameManager = require('./minigames/manager');
 
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -47,6 +48,9 @@ app.get('*', (req, res) => {
 
 // ── Lobby Manager ────────────────────────────────────────
 const lobbyManager = new LobbyManager();
+
+// ── Minigame Manager ─────────────────────────────────────
+const minigameManager = new MinigameManager(io, lobbyManager);
 
 // ── Socket.io Events ─────────────────────────────────────
 io.on('connection', (socket) => {
@@ -133,17 +137,60 @@ io.on('connection', (socket) => {
     io.to(code).emit('chat:message', message);
   });
 
+  // ── Minigames ──────────────────────────────────────────
+  socket.on('minigame:queue', ({ gameId }) => {
+    const code = lobbyManager.getPlayerLobbyCode(socket.id);
+    if (code) minigameManager.handleQueue(socket.id, code, gameId);
+  });
+
+  socket.on('minigame:dequeue', () => {
+    const code = lobbyManager.getPlayerLobbyCode(socket.id);
+    if (code) minigameManager.handleDequeue(socket.id, code);
+  });
+
+  socket.on('minigame:ready', ({ ready }) => {
+    const code = lobbyManager.getPlayerLobbyCode(socket.id);
+    if (code) minigameManager.handleReady(socket.id, code, ready);
+  });
+
+  socket.on('minigame:step-on', ({ x, y }) => {
+    const code = lobbyManager.getPlayerLobbyCode(socket.id);
+    if (code) minigameManager.handleStepOn(socket.id, code, x, y);
+  });
+
+  socket.on('minigame:step-off', ({ x, y }) => {
+    const code = lobbyManager.getPlayerLobbyCode(socket.id);
+    if (code) minigameManager.handleStepOff(socket.id, code, x, y);
+  });
+
+  socket.on('minigame:move', (data) => {
+    const code = lobbyManager.getPlayerLobbyCode(socket.id);
+    if (code) minigameManager.handleMove(socket.id, code, data);
+  });
+
+  socket.on('minigame:exit', () => {
+    const code = lobbyManager.getPlayerLobbyCode(socket.id);
+    if (code) minigameManager.handleExit(socket.id, code);
+  });
+
   // ── Disconnect ─────────────────────────────────────────
   socket.on('disconnect', () => {
     console.log(`[Socket] Disconnected: ${socket.id}`);
 
     const { wasHost, lobbyCode, lobby } = lobbyManager.removePlayer(socket.id);
 
+    if (lobbyCode) {
+      minigameManager.removePlayer(lobbyCode, socket.id);
+    }
+
     if (!lobbyCode) return;
 
     if (wasHost) {
       // Start grace period — if host doesn't return, lobby is destroyed
       lobbyManager.startHostGracePeriod(lobbyCode, (code, remainingPlayerIds) => {
+        // Cleanup minigames state
+        minigameManager.cleanupLobby(code);
+
         // Notify all remaining players
         io.to(code).emit('host-left', {
           message: 'The host has left. Lobby is closing.'

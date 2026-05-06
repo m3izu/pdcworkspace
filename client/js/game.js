@@ -1,3 +1,5 @@
+import MinigameRenderer from './minigames/renderer.js';
+
 /**
  * PDC PIT YAWA — Phaser Game Scene
  * Handles 2D world rendering, player movement, and multiplayer avatar sync.
@@ -27,8 +29,8 @@ const AVATAR_COLORS = ['#6c5ce7', '#00cec9', '#e17055', '#fdcb6e', '#00b894'];
 // Avatar config — set hasSprite: true once the PNG is in assets/avatars/
 const AVATARS = [
   { name: 'Franco',   key: 'franco',   hasSprite: true  },
-  { name: 'Mariann',  key: 'mariann',  hasSprite: false },
-  { name: 'Gwynette', key: 'gwynette', hasSprite: false },
+  { name: 'Mariann',  key: 'mariann',  hasSprite: true  },
+  { name: 'Gwynette', key: 'gwynette', hasSprite: true  },
   { name: 'Aldwyn',   key: 'aldwyn',   hasSprite: false },
   { name: 'Rafi',     key: 'rafi',     hasSprite: false },
 ];
@@ -42,9 +44,16 @@ const MAPS = {
   office: {
     name: 'USTP', json: 'ustp',
     tilesets: [
-      { key: 'room_builder', file: 'assets/maps/Room_Builder_free_32x32.png', firstgid: 1 },
-      { key: 'interiors',    file: 'assets/maps/Interiors_free_32x32.png',    firstgid: 392 },
+      { key: 'room_builder', file: 'assets/maps/Room_Builder_free_32x32.png' },
+      { key: 'interiors',    file: 'assets/maps/Interiors_free_32x32.png'    },
     ],
+    triggers: [
+      { game: 'tictactoe',  tiles: [{x: 0, y: 15}, {x: 3, y: 15}], color: 0x6c5ce7 },
+      { game: 'battleship', tiles: [{x: 0, y: 17}, {x: 3, y: 17}], color: 0xe17055 },
+      { game: 'checkers',   tiles: [{x: 0, y: 19}, {x: 3, y: 19}], color: 0x00cec9 },
+      { game: 'tongits',    tiles: [{x: 16, y: 13}, {x: 18, y: 13}, {x: 17, y: 16}], color: 0xfdcb6e },
+      { game: 'uno',        tiles: [{x: 16, y: 6}, {x: 16, y: 7}, {x: 17, y: 4}, {x: 19, y: 4}, {x: 20, y: 6}], color: 0xd63031 },
+    ]
   },
   lounge: { name: 'Balay ni Aldwyn', width: 22, height: 18, color: 0x0a3d2e, floorColor: 0x2d6a4f },
   campus: { name: 'Tiyan ni Rafi',   width: 28, height: 22, color: 0x2d1b69, floorColor: 0x4a3f8a },
@@ -63,6 +72,11 @@ class GameScene extends Phaser.Scene {
     this.lastDirection = 'down';
     this.isMoving = false;
     this.nameTexts = new Map();
+    this.isMinigameActive = false;
+    this.currentTriggerTile = null;
+    this.nearbyTrigger = null;
+    this.triggerPrompt = null;
+    this.minigameRenderer = null;
   }
 
   init(data) {
@@ -118,23 +132,39 @@ class GameScene extends Phaser.Scene {
       // ── TILED MAP ──────────────────────────────────
       const map = this.make.tilemap({ key: mapDef.json });
 
-      // Add tilesets — Phaser matches by the name inside the JSON
-      const tilesets = [];
+      // Build image-basename → texture-key lookup from game config
+      const imageKeyMap = {};
       for (const ts of mapDef.tilesets) {
-        const tileset = map.addTilesetImage(ts.key === 'room_builder'
-          ? 'Room_Builder_free_32x32'
-          : 'Interiors_free_32x32', ts.key);
-        if (tileset) tilesets.push(tileset);
+        const basename = ts.file.split('/').pop();
+        imageKeyMap[basename] = ts.key;
       }
 
-      // Create all tile layers by index (handles duplicate names like 'Collision')
+      // Read tileset names directly from the cached map JSON (no hardcoding needed)
+      const rawMapData = this.cache.tilemap.get(mapDef.json);
+      const rawTilesets = rawMapData?.data?.tilesets || rawMapData?.tilesets || [];
+
+      const tilesets = [];
+      for (const rawTs of rawTilesets) {
+        if (!rawTs.name || !rawTs.image) continue;
+        const basename = rawTs.image.split('/').pop();
+        const key = imageKeyMap[basename];
+        if (key) {
+          const tileset = map.addTilesetImage(rawTs.name, key);
+          if (tileset) tilesets.push(tileset);
+        }
+      }
+
+      // Create all tile layers; Wall 1, Wall 2, and Collision layers are solid
+      const COLLISION_LAYERS = ['Collision', 'Wall 1', 'Wall 2',
+        'Wall 1 (wall design)', 'Wall 2 (wall frame)'];
       this.collisionLayers = [];
       for (let i = 0; i < map.layers.length; i++) {
         const layerData = map.layers[i];
+        const isCollision = COLLISION_LAYERS.includes(layerData.name);
         const layer = map.createLayer(i, tilesets);
         if (layer) {
-          layer.setDepth(layerData.name === 'Collision' ? 5 : 0);
-          if (layerData.name === 'Collision') {
+          layer.setDepth(isCollision ? 5 : 0);
+          if (isCollision) {
             layer.setCollisionByExclusion([-1, 0]);
             this.collisionLayers.push(layer);
           }
@@ -145,8 +175,8 @@ class GameScene extends Phaser.Scene {
       mapH = map.heightInPixels;
 
       // Default spawn: center of map in open area
-      spawnX = 3 * TILE_SIZE + TILE_SIZE / 2;
-      spawnY = 10 * TILE_SIZE + TILE_SIZE / 2;
+      spawnX = 27 * TILE_SIZE + TILE_SIZE / 2;
+      spawnY = 6  * TILE_SIZE + TILE_SIZE / 2;
 
     } else {
       // ── PROCEDURAL FALLBACK ────────────────────────
@@ -179,6 +209,54 @@ class GameScene extends Phaser.Scene {
       spawnY = 3 * TILE_SIZE + TILE_SIZE / 2;
     }
 
+    // Draw Minigame Trigger Zones (glowing areas with labels)
+    this.triggerZones = [];
+    if (mapDef.triggers) {
+      for (const trigger of mapDef.triggers) {
+        // Draw individual tile glows
+        for (const tile of trigger.tiles) {
+          const gx = tile.x * TILE_SIZE + TILE_SIZE / 2;
+          const gy = tile.y * TILE_SIZE + TILE_SIZE / 2;
+          const glow = this.add.rectangle(gx, gy, TILE_SIZE, TILE_SIZE, trigger.color ?? 0x6c5ce7, 0.25);
+          glow.setDepth(1);
+          glow.setStrokeStyle(2, trigger.color ?? 0x6c5ce7, 0.6);
+          this.tweens.add({ targets: glow, alpha: { from: 0.15, to: 0.45 }, duration: 1200, yoyo: true, repeat: -1 });
+        }
+
+        // Calculate bounding box center for the label and detection zone
+        const xs = trigger.tiles.map(t => t.x);
+        const ys = trigger.tiles.map(t => t.y);
+        const minX = Math.min(...xs), maxX = Math.max(...xs);
+        const minY = Math.min(...ys), maxY = Math.max(...ys);
+        const cx = ((minX + maxX) / 2) * TILE_SIZE + TILE_SIZE / 2;
+        const cy = ((minY + maxY) / 2) * TILE_SIZE + TILE_SIZE / 2;
+
+        const label = this.add.text(cx, cy, trigger.game.toUpperCase(), {
+          fontSize: '9px', fontFamily: 'Inter, sans-serif', fontStyle: 'bold',
+          color: '#ffffff', backgroundColor: 'rgba(0,0,0,0.5)',
+          padding: { x: 4, y: 2 },
+        }).setOrigin(0.5).setDepth(2);
+
+        this.triggerZones.push({
+          game: trigger.game,
+          cx, cy,
+          halfW: ((maxX - minX + 1) / 2 + 1) * TILE_SIZE,
+          halfH: ((maxY - minY + 1) / 2 + 1) * TILE_SIZE,
+          color: trigger.color,
+        });
+      }
+    }
+
+    // HUD prompt (fixed to camera)
+    this.triggerPrompt = this.add.text(0, 0, '', {
+      fontSize: '14px', fontFamily: 'Inter, sans-serif', fontStyle: 'bold',
+      color: '#ffffff', backgroundColor: 'rgba(0,0,0,0.7)',
+      padding: { x: 12, y: 6 },
+    }).setOrigin(0.5).setDepth(100).setScrollFactor(0).setVisible(false);
+
+    // E key for interaction
+    this.interactKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+
     // Spawn my player
     const myData = this.config.players.find(p => p.id === this.config.mySocketId);
     const avatarId = myData ? myData.avatarId : 0;
@@ -207,6 +285,10 @@ class GameScene extends Phaser.Scene {
       left:  Phaser.Input.Keyboard.KeyCodes.A,
       right: Phaser.Input.Keyboard.KeyCodes.D,
     });
+
+    // Initialize minigame renderer (client-side UI handler)
+    this.minigameRenderer = MinigameRenderer;
+    this.minigameRenderer.init(this.config.socket);
 
     // Spawn existing remote players
     for (const p of this.config.players) {
@@ -378,6 +460,13 @@ class GameScene extends Phaser.Scene {
   update() {
     if (!this.myPlayer) return;
 
+    // Freeze player if minigame is active
+    if (this.isMinigameActive) {
+      this.myPlayer.body.setVelocity(0);
+      this._playAnim(this.myPlayer, 'idle');
+      return;
+    }
+
     const speed = 160;
     this.myPlayer.body.setVelocity(0);
 
@@ -431,6 +520,39 @@ class GameScene extends Phaser.Scene {
       });
       this.lastSentPos.x = this.myPlayer.x;
       this.lastSentPos.y = this.myPlayer.y;
+    }
+
+    // ── Proximity-based minigame trigger detection ──────────
+    if (this.triggerZones && this.triggerZones.length > 0) {
+      const px = this.myPlayer.x;
+      const py = this.myPlayer.y;
+      let found = null;
+
+      for (const zone of this.triggerZones) {
+        if (Math.abs(px - zone.cx) < zone.halfW && Math.abs(py - zone.cy) < zone.halfH) {
+          found = zone;
+          break;
+        }
+      }
+
+      if (found) {
+        this.nearbyTrigger = found;
+        const cam = this.cameras.main;
+        this.triggerPrompt.setPosition(cam.width / 2, cam.height - 60);
+        this.triggerPrompt.setText(`Press E to play ${found.game.toUpperCase()}`);
+        this.triggerPrompt.setVisible(true);
+
+        if (Phaser.Input.Keyboard.JustDown(this.interactKey)) {
+          this.config.socket.emit('minigame:queue', { gameId: found.game });
+          this.triggerPrompt.setText(`Queued for ${found.game.toUpperCase()} — waiting for opponent...`);
+        }
+      } else {
+        if (this.nearbyTrigger) {
+          this.nearbyTrigger = null;
+          this.triggerPrompt.setVisible(false);
+          this.config.socket.emit('minigame:dequeue');
+        }
+      }
     }
 
     // Lerp remote players
