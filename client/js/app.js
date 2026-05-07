@@ -1,5 +1,5 @@
 /**
- * PDC PIT YAWA — Main Application
+ * SnappyWorld — Main Application
  * Handles screen navigation, lobby flow, and game initialization.
  */
 

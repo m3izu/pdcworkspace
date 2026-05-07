@@ -1,5 +1,5 @@
 /**
- * PDC PIT YAWA — Proximity Manager
+ * SnappyWorld — Proximity Manager
  * Handles WebRTC video/audio calls based on avatar distance.
  */
 

@@ -1,5 +1,5 @@
 /**
- * PDC PIT YAWA — Main Server
+ * SnappyWorld — Main Server
  * 
  * Express + Socket.io + PeerJS server
  * Handles lobby management, player sync, and chat.
@@ -219,7 +219,7 @@ io.on('connection', (socket) => {
 
 // ── Start Server ─────────────────────────────────────────
 server.listen(PORT, () => {
-  console.log(`\n  🎮 PDC PIT YAWA server running`);
+  console.log(`\n  🎮 SnappyWorld server running`);
   console.log(`  📡 http://localhost:${PORT}`);
   console.log(`  🔌 Socket.io ready`);
   console.log(`  📹 PeerJS server at /peerjs\n`);

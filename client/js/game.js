@@ -1,7 +1,7 @@
 import MinigameRenderer from './minigames/renderer.js';
 
 /**
- * PDC PIT YAWA — Phaser Game Scene
+ * SnappyWorld — Phaser Game Scene
  * Handles 2D world rendering, player movement, and multiplayer avatar sync.
  *
  * AVATAR SPRITESHEET FORMAT (per character):

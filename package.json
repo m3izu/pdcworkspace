@@ -1,7 +1,7 @@
 {
-  "name": "pdc-pit-yawa",
+  "name": "snappyworld",
   "version": "1.0.0",
-  "description": "PDC PIT YAWA — A Gather.town-style virtual space with proximity video chat",
+  "description": "SnappyWorld — A Gather.town-style virtual space with proximity video chat",
   "main": "server/index.js",
   "scripts": {
     "dev": "concurrently \"node server/index.js\" \"vite client --host\"",

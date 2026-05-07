@@ -1,5 +1,5 @@
 /**
- * PDC PIT YAWA — Chat Manager
+ * SnappyWorld — Chat Manager
  * Handles text chat UI and Socket.io chat events.
  */
 
