@@ -466,6 +466,42 @@ module.exports = {
     return { ended: false };
   },
 
+  // Called when a player leaves/disconnects mid-game
+  handlePlayerLeave(state, role) {
+    if (!role || !state.players[role]) return;
+    
+    const p = state.players[role];
+    
+    // If mid-hand and not folded, fold them and add their bet to pot
+    if (!p.folded && state.phase !== 'showdown') {
+      p.folded = true;
+      state.activeCount = Math.max(0, state.activeCount - 1);
+      state.lastAction = role + ' left the table';
+    }
+    
+    // Set their chips to 0 so they get removed on next hand
+    p.chips = 0;
+    
+    // If it was their turn, advance
+    if (state.roles[state.turnIdx] === role && state.phase !== 'showdown') {
+      state.turnIdx = (state.turnIdx + 1) % state.roles.length;
+      skipInactive(state);
+    }
+    
+    // Check if only 1 active player remains
+    const activePlayers = state.roles.filter(r => !state.players[r].folded);
+    if (activePlayers.length <= 1 && state.phase !== 'showdown') {
+      state.phase = 'showdown';
+      resolveShowdown(state);
+    }
+    
+    // Check if game should end entirely (fewer than 2 players with chips)
+    const playersWithChips = state.roles.filter(r => state.players[r].chips > 0 || (!state.players[r].folded && r !== role));
+    if (playersWithChips.length < 2 && state.phase === 'showdown') {
+      state.winner = playersWithChips[0] || 'Nobody';
+    }
+  },
+
   getSanitizedState(state, role) {
     return getSanitizedState(state, role);
   }

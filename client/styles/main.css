@@ -1371,83 +1371,7 @@ body {
 }
 
 
-/* ═══════════════════════════════════════════════════
-   UNO THEME
-   ═══════════════════════════════════════════════════ */
-.theme-uno { background: linear-gradient(135deg, #1a0000 0%, #2d0a0a 40%, #1a0505 100%); }
-.theme-uno .minigame-card { background: rgba(45, 10, 10, 0.95); border-color: rgba(214, 48, 49, 0.3); }
-.theme-uno .minigame-title { color: #ff6b6b; text-shadow: 0 0 20px rgba(214, 48, 49, 0.4); }
-
-.uno-container { display: flex; flex-direction: column; gap: 10px; max-width: 700px; margin: 0 auto; }
-
-.uno-status { text-align: center; font-size: 14px; font-weight: 600; padding: 6px 12px; border-radius: 8px; }
-.uno-status.your-turn { color: #ff6b6b; background: rgba(214, 48, 49, 0.1); }
-.uno-status.opponent-turn { color: #8b8fa3; }
-.uno-status.win { color: #00e676; font-size: 18px; }
-.uno-status.lose { color: #ff6b6b; font-size: 18px; }
-
-.uno-last-action { text-align: center; font-size: 11px; color: #8b8fa3; font-style: italic; }
-
-.uno-info-bar {
-  display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
-  font-size: 11px; color: #8b8fa3;
-}
-.uno-info-bar span { padding: 3px 8px; background: rgba(255,255,255,0.04); border-radius: 6px; }
-.uno-color-dot {
-  display: inline-block; width: 10px; height: 10px; border-radius: 50%;
-  vertical-align: middle; margin-right: 4px;
-}
-
-.uno-opponents { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
-.uno-opponent {
-  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 8px; padding: 5px 12px; font-size: 11px; color: #8b8fa3;
-}
-.uno-opponent.active { border-color: rgba(214, 48, 49, 0.4); color: #ff6b6b; }
-.uno-opp-name { font-weight: 700; margin-right: 6px; }
-
-.uno-table { display: flex; gap: 20px; justify-content: center; align-items: flex-start; }
-.uno-pile-group { text-align: center; }
-.uno-pile-label { font-size: 10px; color: #8b8fa3; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
-
-.uno-draw-pile, .uno-discard-pile { position: relative; display: flex; align-items: center; justify-content: center; }
-.uno-draw-pile.clickable { cursor: pointer; }
-.uno-draw-pile.clickable:hover .uno-card { transform: scale(1.05); box-shadow: 0 0 16px rgba(214, 48, 49, 0.4); }
-.uno-pending-badge {
-  position: absolute; top: -8px; right: -8px;
-  background: #d63031; color: #fff; font-size: 11px; font-weight: 700;
-  padding: 2px 6px; border-radius: 10px;
-}
-
-.uno-card {
-  width: 56px; height: 80px;
-  border-radius: 6px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.15s;
-  user-select: none;
-  border: 2px solid rgba(255,255,255,0.1);
-  display: flex; align-items: center; justify-content: center;
-}
-.uno-card img {
-  width: 100%; height: 100%;
-  object-fit: contain;
-  pointer-events: none;
-}
-.uno-card:hover { transform: translateY(-4px); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
-.uno-card.uno-selected {
-  transform: translateY(-10px);
-  box-shadow: 0 0 16px rgba(255,255,255,0.4);
-  border-color: #fff;
-}
-.uno-card.uno-playable { border-color: rgba(255,255,255,0.5); }
-.uno-card.uno-empty {
-  background: rgba(255,255,255,0.05); border-style: dashed; color: #555;
-  font-size: 20px; cursor: default;
-}
-
-.uno-hand-area { text-align: center; }
-.uno-hand-label { font-size: 10px; color: #8b8fa3; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+/* Redundant UNO section removed — consolidated above */
 .uno-hand {
   display: flex; flex-wrap: wrap; gap: 4px;
   justify-content: center; padding: 8px;
@@ -1585,21 +1509,25 @@ body {
 
   /* Ready lobby */
   .ready-toggle-btn { padding: 10px 20px !important; font-size: 14px !important; }
+  .ready-player { padding: 6px 12px; font-size: 0.75rem; }
 }
 
 /* ── RESPONSIVE: Very small screens (≤480px) ──── */
 @media (max-width: 480px) {
-  .ttt-cell { width: 60px; height: 60px; font-size: 2rem; }
-  .chk-cell { width: 30px; height: 30px; }
-  .chk-piece { width: 22px; height: 22px; font-size: 0.7rem; }
-  .bs-cell { width: 16px; height: 16px; }
-  .ti-card { width: 34px; height: 48px; font-size: 10px; }
-  .ti-card.mini { width: 24px; height: 32px; font-size: 8px; }
-  .uno-card { width: 38px; height: 56px; }
-  .minigame-card { padding: 12px; gap: 8px; }
-  .minigame-title { font-size: 1rem; }
-  .game-instructions summary { padding: 8px 10px; font-size: 0.75rem; }
-  .game-instructions ul { padding: 8px 12px 8px 24px; font-size: 0.72rem; }
+  .ttt-cell { width: 54px; height: 54px; font-size: 1.8rem; }
+  .chk-cell { width: 28px; height: 30px; }
+  .chk-piece { width: 20px; height: 20px; font-size: 0.65rem; }
+  .bs-cell { width: 14px; height: 14px; }
+  .ti-card { width: 32px; height: 44px; font-size: 9px; }
+  .ti-card.mini { width: 22px; height: 30px; font-size: 7px; }
+  .uno-card { width: 36px; height: 52px; }
+  .uno-opponent { padding: 4px 8px; font-size: 10px; }
+  .minigame-card { padding: 10px; gap: 6px; }
+  .minigame-title { font-size: 0.95rem; }
+  .game-instructions summary { padding: 6px 8px; font-size: 0.7rem; }
+  .game-instructions ul { padding: 6px 10px 6px 20px; font-size: 0.7rem; }
+  .ready-lobby-players { gap: 6px; }
+  .ready-player { padding: 4px 8px; font-size: 10px; }
 }
 
 

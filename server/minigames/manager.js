@@ -285,6 +285,41 @@ class MinigameManager {
   handleExit(socketId, lobbyCode) {
     const state = this._getLobbyState(lobbyCode);
     if (!state.activeGame || !state.activeGame.players.includes(socketId)) return;
+
+    const game = this.games[state.activeGame.id];
+    const role = state.activeGame.roles[socketId];
+
+    // If the game supports mid-game leave (e.g. poker), fold the player out
+    if (game.handlePlayerLeave && state.activeGame.players.length > 2) {
+      game.handlePlayerLeave(state.activeGame.gameState, role);
+
+      // Remove from active player list
+      state.activeGame.players = state.activeGame.players.filter(p => p !== socketId);
+
+      // Broadcast updated state to remaining players
+      for (const pid of state.activeGame.players) {
+        const r = state.activeGame.roles[pid];
+        this.io.to(pid).emit('minigame:update',
+          this._sanitizeState(state.activeGame.id, state.activeGame.gameState, r)
+        );
+      }
+
+      // Notify the leaving player
+      this.io.to(socketId).emit('minigame:end', { winner: null, disconnected: false });
+
+      // Check if the game ended after the leave
+      const endCheck = game.checkEnd(state.activeGame.gameState);
+      if (endCheck.ended) {
+        setTimeout(() => {
+          this._endGame(lobbyCode, state, endCheck.winner, false);
+        }, 2000);
+      }
+
+      console.log(`[Minigame] ${socketId} (${role}) left poker in lobby ${lobbyCode}`);
+      return;
+    }
+
+    // Default behavior: end the game for everyone
     this._endGame(lobbyCode, state, null, true);
   }
 

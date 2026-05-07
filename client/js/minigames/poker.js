@@ -1,231 +1,241 @@
-function getSpriteUrl(card, isHidden = false) {
+function getSpriteUrl(card, isHidden) {
   if (isHidden) return 'assets/cards/back_dark.png';
   if (!card || card.rank === '?') return '';
-  const rankMap = { 'J': 'J', 'Q': 'Q', 'K': 'K', 'A': 'A' };
-  const filename = card.suit + '_' + (rankMap[card.rank] || card.rank) + '.png';
-  return 'assets/cards/' + filename;
+  var rankMap = { 'J': 'J', 'Q': 'Q', 'K': 'K', 'A': 'A' };
+  return 'assets/cards/' + card.suit + '_' + (rankMap[card.rank] || card.rank) + '.png';
 }
 
-function renderPokerCard(card, isHidden = false, isSmall = false) {
-  const url = getSpriteUrl(card, isHidden);
-  const dims = isSmall ? 'width: 45px; height: 63px;' : 'width: 65px; height: 91px;';
+function renderCard(card, isHidden, isSmall) {
+  var w = isSmall ? 42 : 60;
+  var h = isSmall ? 59 : 84;
+  var dims = 'width:' + w + 'px;height:' + h + 'px;';
   
   if (!card || card.rank === '?') {
-    return '<div style="' + dims + ' background: rgba(0,0,0,0.2); border: 2px dashed rgba(255,255,255,0.15); border-radius: 5px; margin: 0 2px;"></div>';
+    return '<div style="' + dims + 'background:rgba(0,0,0,0.15);border:2px dashed rgba(255,255,255,0.12);border-radius:6px;margin:0 2px;flex-shrink:0;"></div>';
   }
 
-  return '<div class="ti-card" style="padding: 0; background: none; box-shadow: none; border: none; margin: 0 2px; ' + dims + '">' +
-    '<img src="' + url + '" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5)); border-radius: 5px;">' +
+  var url = getSpriteUrl(card, isHidden);
+  return '<div style="' + dims + 'margin:0 2px;flex-shrink:0;">' +
+    '<img src="' + url + '" style="width:100%;height:100%;object-fit:contain;border-radius:6px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));">' +
     '</div>';
 }
 
-export function createPokerUI(container, state, myRole, onMove) {
-  let cur = state;
-  let raiseAmount = 0;
+var POKER_CSS = [
+  '.pk-wrap{display:flex;flex-direction:column;height:100%;gap:8px;padding:8px;box-sizing:border-box;color:#fff;font-family:sans-serif}',
+  '.pk-guide{background:rgba(255,255,255,0.06);border-radius:10px;padding:6px 10px;font-size:11px;margin-bottom:2px}',
+  '.pk-guide summary{cursor:pointer;color:#f1c40f;font-weight:700;font-size:12px}',
+  '.pk-guide ul{margin:4px 0;padding-left:16px;color:#bbb;line-height:1.6}',
 
-  const paint = () => {
-    const isMyTurn = cur.roles[cur.turnIdx] === myRole && cur.phase !== 'showdown';
-    const me = cur.players[myRole];
-    
-    if (!me) return; // safety — we might have been eliminated
-    
-    const callAmount = cur.currentBet - me.currentBet;
-    const canCheck = callAmount === 0;
-    const minRaise = cur.currentBet > 0 ? cur.currentBet * 2 : 20;
-    
+  '.pk-table{flex:1;background:radial-gradient(ellipse at 50% 60%,#1e8c4e 0%,#0c3d22 100%);border-radius:30px;border:8px solid #5c3a21;box-shadow:inset 0 0 40px rgba(0,0,0,0.7),0 6px 20px rgba(0,0,0,0.4);position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:280px;padding:15px;overflow:visible}',
+  '.pk-table::before{content:"";position:absolute;top:12px;bottom:12px;left:12px;right:12px;border:2px solid rgba(255,255,255,0.08);border-radius:22px;pointer-events:none}',
+
+  '.pk-center{text-align:center;z-index:2;width:100%}',
+  '.pk-pot{font-size:20px;color:#f1c40f;font-weight:800;text-shadow:0 2px 6px rgba(0,0,0,0.7);margin-bottom:8px;background:rgba(0,0,0,0.45);padding:4px 14px;border-radius:12px;display:inline-block;border:1px solid rgba(241,196,15,0.25)}',
+  '.pk-cc{display:flex;justify-content:center;gap:4px;flex-wrap:nowrap}',
+  '.pk-action{font-size:11px;color:#f1c40f;font-style:italic;text-align:center;margin-top:4px;min-height:14px}',
+
+  '.pk-opp{position:absolute;background:rgba(0,0,0,0.7);padding:6px 8px;border-radius:10px;text-align:center;border:1px solid rgba(255,255,255,0.12);backdrop-filter:blur(4px);box-shadow:0 3px 8px rgba(0,0,0,0.4);z-index:5;min-width:80px}',
+  '.pk-opp.on{border-color:#f1c40f;box-shadow:0 0 12px rgba(241,196,15,0.4)}',
+  '.pk-opp.out{opacity:0.45;filter:grayscale(1)}',
+  '.pk-opp-cards{display:flex;justify-content:center;gap:2px;margin-bottom:4px}',
+
+  '.pk-dash{background:rgba(0,0,0,0.85);padding:10px 12px;border-radius:16px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 4px 16px rgba(0,0,0,0.5);display:flex;flex-direction:column;gap:8px}',
+  '.pk-me-top{display:flex;justify-content:space-between;align-items:center}',
+  '.pk-me-info{text-align:left}',
+  '.pk-hole{display:flex;gap:4px}',
+
+  '.pk-ctrls{display:flex;gap:6px;width:100%}',
+  '.pk-btn{color:#fff;border:none;padding:9px 6px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;transition:0.15s;text-transform:uppercase;flex:1;text-align:center}',
+  '.pk-btn:disabled{opacity:0.35;cursor:not-allowed;filter:grayscale(1)}',
+  '.pk-btn:hover:not(:disabled){filter:brightness(1.15)}',
+  '.pk-fold{background:linear-gradient(180deg,#e74c3c,#c0392b)}',
+  '.pk-call{background:linear-gradient(180deg,#2ecc71,#27ae60)}',
+  '.pk-raise{background:linear-gradient(180deg,#f39c12,#d35400)}',
+  '.pk-stand{background:linear-gradient(180deg,#95a5a6,#7f8c8d)}',
+  '.pk-raise-row{display:flex;gap:6px;align-items:center;background:rgba(0,0,0,0.35);padding:6px 10px;border-radius:10px}',
+  '.pk-raise-row input[type=range]{flex:1;margin:0}',
+
+  '.pk-chips{color:#f1c40f;font-weight:700;font-size:13px}',
+  '.pk-bet{color:#3498db;font-size:10px;font-weight:700;background:rgba(52,152,219,0.2);padding:1px 5px;border-radius:5px;display:inline-block;margin-top:2px}',
+  '.pk-msg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.95);border:2px solid #f1c40f;color:#fff;padding:18px 24px;border-radius:14px;text-align:center;z-index:100;font-size:15px;font-weight:700;width:78%;box-shadow:0 8px 30px rgba(0,0,0,0.7)}',
+  '@media (max-width: 600px) {',
+  '  .pk-table{min-height:220px;padding:10px;border-width:5px}',
+  '  .pk-pot{font-size:16px;padding:3px 10px}',
+  '  .pk-dash{padding:8px;gap:6px}',
+  '  .pk-btn{padding:7px 4px;font-size:10px}',
+  '  .pk-chips{font-size:11px}',
+  '  .pk-me-info div{font-size:11px !important}',
+  '  .pk-opp{min-width:70px;padding:4px 6px}',
+  '  .pk-opp-cards img{width:30px;height:42px}',
+  '  .pk-cc div{width:45px !important;height:63px !important}',
+  '  .pk-hole div{width:45px !important;height:63px !important}',
+  '}'
+].join('\n');
+
+export function createPokerUI(container, state, myRole, onMove) {
+  var cur = state;
+  var raiseAmount = 0;
+
+  function paint() {
+    var isMyTurn = cur.roles[cur.turnIdx] === myRole && cur.phase !== 'showdown';
+    var me = cur.players[myRole];
+    if (!me) return;
+
+    var callAmt = cur.currentBet - me.currentBet;
+    var canCheck = callAmt === 0;
+    var minRaise = cur.currentBet > 0 ? cur.currentBet * 2 : 20;
     if (raiseAmount < minRaise) raiseAmount = minRaise;
     if (raiseAmount > me.chips + me.currentBet) raiseAmount = me.chips + me.currentBet;
 
-    const oppRoles = cur.roles.filter(r => r !== myRole);
-    
-    const getOppPosition = (index, total) => {
-      if (total === 1) return 'top: 10px; left: 50%; transform: translateX(-50%);';
-      if (total === 2) {
-        if (index === 0) return 'top: 20px; left: 5%;';
-        return 'top: 20px; right: 5%;';
+    var oppRoles = cur.roles.filter(function(r) { return r !== myRole; });
+
+    // Position opponents around the table using percentages
+    function oppPos(idx, tot) {
+      if (tot === 1) return 'top:12px;left:50%;transform:translateX(-50%)';
+      if (tot === 2) return idx === 0 ? 'top:12px;left:12%' : 'top:12px;right:12%';
+      if (tot === 3) {
+        if (idx === 0) return 'top:45%;left:4%;transform:translateY(-50%)';
+        if (idx === 1) return 'top:12px;left:50%;transform:translateX(-50%)';
+        return 'top:45%;right:4%;transform:translateY(-50%)';
       }
-      if (total === 3) {
-        if (index === 0) return 'top: 120px; left: 5%;';
-        if (index === 1) return 'top: 10px; left: 50%; transform: translateX(-50%);';
-        return 'top: 120px; right: 5%;';
-      }
-      if (total === 4) {
-        if (index === 0) return 'top: 160px; left: 5%;';
-        if (index === 1) return 'top: 10px; left: 15%;';
-        if (index === 2) return 'top: 10px; right: 15%;';
-        return 'top: 160px; right: 5%;';
+      if (tot === 4) {
+        if (idx === 0) return 'top:50%;left:4%;transform:translateY(-50%)';
+        if (idx === 1) return 'top:12px;left:22%';
+        if (idx === 2) return 'top:12px;right:22%';
+        return 'top:50%;right:4%;transform:translateY(-50%)';
       }
       return '';
-    };
+    }
 
-    // Build opponent HTML
-    let oppHTML = '';
-    oppRoles.forEach((r, index) => {
-      const opp = cur.players[r];
-      const isTurn = cur.roles[cur.turnIdx] === r && cur.phase !== 'showdown';
-      let oppCardsHTML = '';
-      
-      if (cur.phase === 'showdown' && !opp.folded) {
-        oppCardsHTML = '<div class="poker-opp-cards">' +
-          renderPokerCard(opp.holeCards[0], false, true) +
-          renderPokerCard(opp.holeCards[1], false, true) +
-          '</div>';
-      } else if (!opp.folded) {
-        oppCardsHTML = '<div class="poker-opp-cards">' +
-          renderPokerCard(null, true, true) +
-          renderPokerCard(null, true, true) +
-          '</div>';
+    // Opponents
+    var oppH = '';
+    oppRoles.forEach(function(r, i) {
+      var o = cur.players[r];
+      var isTurn = cur.roles[cur.turnIdx] === r && cur.phase !== 'showdown';
+      var cards = '';
+      if (cur.phase === 'showdown' && !o.folded) {
+        cards = '<div class="pk-opp-cards">' + renderCard(o.holeCards[0], false, true) + renderCard(o.holeCards[1], false, true) + '</div>';
+      } else if (!o.folded) {
+        cards = '<div class="pk-opp-cards">' + renderCard(null, true, true) + renderCard(null, true, true) + '</div>';
       }
-      
-      oppHTML += '<div class="poker-opp ' + (isTurn ? 'active' : '') + ' ' + (opp.folded ? 'folded' : '') + '" style="' + getOppPosition(index, oppRoles.length) + '">' +
-        oppCardsHTML +
-        '<div style="font-weight: 800; color: white; font-size: 13px; text-transform: uppercase;">' + r + '</div>' +
-        '<div class="poker-chips">' + opp.chips + ' \uD83E\uDE99</div>' +
-        (opp.currentBet > 0 ? '<div class="poker-bet">Bet: ' + opp.currentBet + '</div>' : '') +
-        (opp.folded ? '<div style="color:#e74c3c; font-size:11px; font-weight:bold;">FOLDED</div>' : '') +
-        (opp.allIn ? '<div style="color:#f1c40f; font-size:11px; font-weight:bold;">ALL IN</div>' : '') +
-        (cur.phase === 'showdown' && !opp.folded && opp.bestHand ? '<div style="font-size: 10px; color: #f1c40f; font-weight:bold;">' + opp.bestHand.name + '</div>' : '') +
+      oppH += '<div class="pk-opp' + (isTurn ? ' on' : '') + (o.folded ? ' out' : '') + '" style="' + oppPos(i, oppRoles.length) + '">' +
+        cards +
+        '<div style="font-weight:700;font-size:12px;text-transform:uppercase">' + r + '</div>' +
+        '<div class="pk-chips">' + o.chips + '</div>' +
+        (o.currentBet > 0 ? '<div class="pk-bet">Bet:' + o.currentBet + '</div>' : '') +
+        (o.folded ? '<div style="color:#e74c3c;font-size:10px;font-weight:700">FOLDED</div>' : '') +
+        (o.allIn ? '<div style="color:#f1c40f;font-size:10px;font-weight:700">ALL IN</div>' : '') +
+        (cur.phase === 'showdown' && !o.folded && o.bestHand ? '<div style="font-size:10px;color:#f1c40f;font-weight:700">' + o.bestHand.name + '</div>' : '') +
         '</div>';
     });
 
-    // Build community cards
-    let communityHTML = '';
-    for (let i = 0; i < 5; i++) {
-      communityHTML += cur.communityCards[i] ? renderPokerCard(cur.communityCards[i]) : renderPokerCard({rank:'?'});
-    }
+    // Community cards
+    var ccH = '';
+    for (var i = 0; i < 5; i++) ccH += cur.communityCards[i] ? renderCard(cur.communityCards[i]) : renderCard({ rank: '?' });
 
-    // Build my hole cards
-    let holeCardsHTML = '';
-    if (me.holeCards && me.holeCards.length === 2) {
-      holeCardsHTML = renderPokerCard(me.holeCards[0]) + renderPokerCard(me.holeCards[1]);
-    }
+    // Hole cards
+    var hcH = '';
+    if (me.holeCards && me.holeCards.length === 2) hcH = renderCard(me.holeCards[0]) + renderCard(me.holeCards[1]);
 
-    // Showdown message
-    let showdownHTML = '';
+    // Showdown overlay
+    var sdH = '';
     if (cur.phase === 'showdown') {
-      showdownHTML = '<div class="poker-message">' +
-        '<div>' + (cur.message || '') + '</div>' +
-        '<br>' +
-        '<button class="poker-btn btn-call" id="btn-next">Next Hand</button>' +
-        '</div>';
+      sdH = '<div class="pk-msg"><div>' + (cur.message || '') + '</div><br><button class="pk-btn pk-call" id="btn-next" style="flex:none;padding:10px 20px">Next Hand</button></div>';
     }
 
-    container.innerHTML =
-      '<style>' +
-      '.poker-wrapper { display: flex; flex-direction: column; height: 100%; justify-content: space-between; gap: 10px; padding: 10px; box-sizing: border-box; color: white; }' +
-      '.poker-table { flex-grow: 1; background: radial-gradient(ellipse at center, #218c53 0%, #0d4a2a 100%); border-radius: 40px; padding: 20px; box-shadow: inset 0 0 30px rgba(0,0,0,0.8), 0 10px 20px rgba(0,0,0,0.3); border: 10px solid #5c3a21; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 300px; }' +
-      '.poker-table::before { content: ""; position: absolute; top: 15px; bottom: 15px; left: 15px; right: 15px; border: 2px solid rgba(255,255,255,0.1); border-radius: 30px; pointer-events: none; }' +
-      '.poker-center { text-align: center; z-index: 2; width: 100%; }' +
-      '.poker-pot { font-size: 22px; color: #f1c40f; font-weight: 800; text-shadow: 0 4px 8px rgba(0,0,0,0.8); margin-bottom: 10px; background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 15px; display: inline-block; border: 1px solid rgba(241,196,15,0.3); }' +
-      '.poker-community { display: flex; justify-content: center; width: 100%; flex-wrap: wrap; }' +
-      '.poker-opp { position: absolute; background: rgba(0,0,0,0.75); padding: 8px; border-radius: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.15); backdrop-filter: blur(5px); box-shadow: 0 4px 10px rgba(0,0,0,0.5); width: 90px; z-index: 5; }' +
-      '.poker-opp.active { border-color: #f1c40f; box-shadow: 0 0 15px rgba(241,196,15,0.5); z-index: 6; }' +
-      '.poker-opp.folded { opacity: 0.5; filter: grayscale(1); }' +
-      '.poker-opp-cards { display: flex; justify-content: center; margin-top: -20px; margin-bottom: 5px; }' +
-      '.poker-opp-cards .ti-card { margin: 0 -10px; }' +
-      '.poker-me-dashboard { background: rgba(0,0,0,0.85); padding: 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 5px 20px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 10px; }' +
-      '.poker-me-top { display: flex; justify-content: space-between; align-items: center; }' +
-      '.poker-hole-cards { display: flex; justify-content: center; }' +
-      '.poker-hole-cards .ti-card:nth-child(1) { transform: rotate(-8deg); z-index: 1; }' +
-      '.poker-hole-cards .ti-card:nth-child(2) { transform: rotate(8deg) translateY(5px); z-index: 2; margin-left: -20px; }' +
-      '.poker-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }' +
-      '.poker-controls-top { display: flex; gap: 8px; width: 100%; grid-column: 1 / -1; }' +
-      '.poker-btn { color: white; border: none; padding: 10px; border-radius: 10px; font-weight: bold; font-size: 13px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3); text-transform: uppercase; flex: 1; }' +
-      '.poker-btn:hover:not(:disabled) { transform: translateY(-1px); }' +
-      '.poker-btn:disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(1); }' +
-      '.btn-fold { background: linear-gradient(to bottom, #e74c3c, #c0392b); }' +
-      '.btn-call { background: linear-gradient(to bottom, #2ecc71, #27ae60); }' +
-      '.btn-raise { background: linear-gradient(to bottom, #f39c12, #d35400); width: 100%; }' +
-      '.raise-container { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.4); padding: 8px 12px; border-radius: 12px; }' +
-      '.poker-chips { color: #f1c40f; font-weight: bold; font-size: 14px; }' +
-      '.poker-bet { color: #3498db; font-size: 11px; font-weight: bold; background: rgba(52,152,219,0.2); padding: 2px 6px; border-radius: 6px; display: inline-block; }' +
-      '.poker-message { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); border: 2px solid #f1c40f; color: white; padding: 20px; border-radius: 15px; text-align: center; z-index: 100; font-size: 16px; font-weight: bold; width: 80%; box-shadow: 0 10px 40px rgba(0,0,0,0.8); }' +
-      '.game-instructions { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 5px 10px; font-size: 12px; }' +
-      '.game-instructions summary { cursor: pointer; color: #f1c40f; font-weight: bold; }' +
-      '.game-instructions ul { margin: 5px 0; padding-left: 15px; color: #ccc; }' +
-      '.poker-last-action { font-size: 12px; color: #f1c40f; font-style: italic; text-align: center; margin-top: 5px; min-height: 15px; }' +
-      '</style>' +
+    // Status line
+    var statusLine = '';
+    if (cur.phase !== 'showdown') {
+      if (isMyTurn) {
+        statusLine = '<div style="text-align:center;font-size:11px;color:#2ecc71;font-weight:700;margin-bottom:2px">Your turn</div>';
+      } else {
+        statusLine = '<div style="text-align:center;font-size:11px;color:#aaa;margin-bottom:2px">Waiting for ' + cur.roles[cur.turnIdx] + '...</div>';
+      }
+    }
 
-      '<div class="poker-wrapper">' +
-        '<details class="game-instructions">' +
-          '<summary>\uD83D\uDCD6 How to Play Texas Hold\'em</summary>' +
-          '<ul>' +
-            '<li><strong>Blinds:</strong> Small (10) and Big (20) blinds are posted automatically.</li>' +
-            '<li><strong>Your Hand:</strong> You get 2 hole cards. Combine with 5 community cards for the best 5-card hand.</li>' +
-            '<li><strong>Betting:</strong> Fold (quit), Check/Call (match), or Raise (increase the bet).</li>' +
-            '<li><strong>Phases:</strong> Pre-flop → Flop (3 cards) → Turn (+1) → River (+1) → Showdown.</li>' +
-            '<li><strong>Rankings:</strong> Royal Flush > Straight Flush > Four of a Kind > Full House > Flush > Straight > Three of a Kind > Two Pair > Pair > High Card</li>' +
-          '</ul>' +
-        '</details>' +
+    container.innerHTML = '<style>' + POKER_CSS + '</style>' +
+      '<div class="pk-wrap">' +
+        '<details class="pk-guide"><summary>How to Play Texas Hold\'em</summary><ul>' +
+          '<li><b>Blinds:</b> Small (10) and Big (20) are posted automatically.</li>' +
+          '<li><b>Hand:</b> 2 hole cards + 5 community cards = best 5-card hand.</li>' +
+          '<li><b>Actions:</b> Fold, Check/Call, or Raise.</li>' +
+          '<li><b>Phases:</b> Pre-flop, Flop (3), Turn (+1), River (+1), Showdown.</li>' +
+          '<li><b>Rankings:</b> Royal Flush &gt; Straight Flush &gt; 4 of a Kind &gt; Full House &gt; Flush &gt; Straight &gt; 3 of a Kind &gt; Two Pair &gt; Pair &gt; High Card</li>' +
+        '</ul></details>' +
 
-        '<div class="poker-table">' +
-          oppHTML +
-          '<div class="poker-center">' +
-            '<div class="poker-pot">POT: ' + cur.pot + ' \uD83E\uDE99</div>' +
-            '<div class="poker-community">' + communityHTML + '</div>' +
-            '<div class="poker-last-action">' + (cur.lastAction || '') + '</div>' +
+        statusLine +
+
+        '<div class="pk-table">' +
+          oppH +
+          '<div class="pk-center">' +
+            '<div class="pk-pot">POT: ' + cur.pot + '</div>' +
+            '<div class="pk-cc">' + ccH + '</div>' +
+            '<div class="pk-action">' + (cur.lastAction || '') + '</div>' +
           '</div>' +
-          showdownHTML +
+          sdH +
         '</div>' +
 
-        '<div class="poker-me-dashboard' + (me.folded ? ' folded' : '') + '">' +
-          '<div class="poker-me-top">' +
-            '<div class="poker-me-info">' +
-              '<div style="color: white; font-weight: bold; font-size: 14px;">' + myRole + ' (You)</div>' +
-              '<div class="poker-chips" style="font-size: 16px;">' + me.chips + ' \uD83E\uDE99</div>' +
-              (me.currentBet > 0 ? '<div class="poker-bet">Bet: ' + me.currentBet + '</div>' : '') +
-              (me.folded ? '<div style="color:#e74c3c; font-weight:bold; font-size:11px;">FOLDED</div>' : '') +
-              (me.allIn ? '<div style="color:#f1c40f; font-weight:bold; font-size:11px;">ALL IN</div>' : '') +
-              (cur.phase === 'showdown' && !me.folded && me.bestHand ? '<div style="color:#f1c40f; font-weight:bold; font-size: 11px;">' + me.bestHand.name + '</div>' : '') +
+        '<div class="pk-dash">' +
+          '<div class="pk-me-top">' +
+            '<div class="pk-me-info">' +
+              '<div style="font-weight:700;font-size:13px">' + myRole + ' (You)</div>' +
+              '<div class="pk-chips" style="font-size:15px">' + me.chips + ' chips</div>' +
+              (me.currentBet > 0 ? '<div class="pk-bet">Bet: ' + me.currentBet + '</div>' : '') +
+              (me.folded ? '<div style="color:#e74c3c;font-weight:700;font-size:11px">FOLDED</div>' : '') +
+              (me.allIn ? '<div style="color:#f1c40f;font-weight:700;font-size:11px">ALL IN</div>' : '') +
+              (cur.phase === 'showdown' && !me.folded && me.bestHand ? '<div style="color:#f1c40f;font-weight:700;font-size:11px">' + me.bestHand.name + '</div>' : '') +
             '</div>' +
-            '<div class="poker-hole-cards">' + holeCardsHTML + '</div>' +
+            '<div class="pk-hole">' + hcH + '</div>' +
           '</div>' +
-
-          '<div class="poker-controls">' +
-            '<div class="poker-controls-top">' +
-              '<button class="poker-btn btn-fold" id="btn-fold"' + (!isMyTurn ? ' disabled' : '') + '>Fold</button>' +
-              '<button class="poker-btn btn-call" id="btn-call"' + (!isMyTurn || me.chips === 0 ? ' disabled' : '') + '>' +
-                (canCheck ? 'Check' : 'Call ' + Math.min(callAmount, me.chips)) +
-              '</button>' +
-            '</div>' +
-            '<div class="raise-container">' +
-              '<input type="range" class="raise-slider" id="raise-slider" min="' + minRaise + '" max="' + (me.chips + me.currentBet) + '" value="' + raiseAmount + '"' + (!isMyTurn || me.chips < minRaise - me.currentBet ? ' disabled' : '') + '>' +
-              '<button class="poker-btn btn-raise" id="btn-raise"' + (!isMyTurn || me.chips < minRaise - me.currentBet ? ' disabled' : '') + '>' +
-                (me.chips + me.currentBet <= minRaise ? 'All In' : 'Raise to ' + raiseAmount) +
-              '</button>' +
-            '</div>' +
+          '<div class="pk-ctrls">' +
+            '<button class="pk-btn pk-fold" id="btn-fold"' + (isMyTurn ? '' : ' disabled') + '>Fold</button>' +
+            '<button class="pk-btn pk-call" id="btn-call"' + (isMyTurn && me.chips > 0 ? '' : ' disabled') + '>' + (canCheck ? 'Check' : 'Call ' + Math.min(callAmt, me.chips)) + '</button>' +
+            '<button class="pk-btn pk-stand" id="btn-stand">Stand</button>' +
+          '</div>' +
+          '<div class="pk-raise-row">' +
+            '<input type="range" id="raise-slider" min="' + minRaise + '" max="' + (me.chips + me.currentBet) + '" value="' + raiseAmount + '"' + (isMyTurn && me.chips >= minRaise - me.currentBet ? '' : ' disabled') + '>' +
+            '<button class="pk-btn pk-raise" id="btn-raise" style="flex:none;width:90px"' + (isMyTurn && me.chips >= minRaise - me.currentBet ? '' : ' disabled') + '>' + (me.chips + me.currentBet <= minRaise ? 'All In' : 'Raise ' + raiseAmount) + '</button>' +
           '</div>' +
         '</div>' +
       '</div>';
 
-    // Bind betting buttons
+    // Bind buttons
     if (isMyTurn) {
-      const foldBtn = container.querySelector('#btn-fold');
-      if (foldBtn) foldBtn.addEventListener('click', () => onMove({ action: 'fold' }));
-
-      const callBtn = container.querySelector('#btn-call');
-      if (callBtn) callBtn.addEventListener('click', () => onMove({ action: 'call' }));
-
-      const slider = container.querySelector('#raise-slider');
-      const raiseBtn = container.querySelector('#btn-raise');
-      
-      if (slider && raiseBtn) {
-        slider.addEventListener('input', (e) => {
-          raiseAmount = parseInt(e.target.value);
-          raiseBtn.textContent = raiseAmount >= (me.chips + me.currentBet) ? 'All In' : 'Raise to ' + raiseAmount;
-        });
-        raiseBtn.addEventListener('click', () => onMove({ action: 'raise', amount: raiseAmount }));
+      var fb = container.querySelector('#btn-fold');
+      if (fb) fb.onclick = function() { onMove({ action: 'fold' }); };
+      var cb = container.querySelector('#btn-call');
+      if (cb) cb.onclick = function() { onMove({ action: 'call' }); };
+      var sl = container.querySelector('#raise-slider');
+      var rb = container.querySelector('#btn-raise');
+      if (sl && rb) {
+        sl.oninput = function() {
+          raiseAmount = parseInt(sl.value);
+          rb.textContent = raiseAmount >= (me.chips + me.currentBet) ? 'All In' : 'Raise ' + raiseAmount;
+        };
+        rb.onclick = function() { onMove({ action: 'raise', amount: raiseAmount }); };
       }
     }
 
-    // Showdown "Next Hand" — any player can press it
-    if (cur.phase === 'showdown') {
-      const nextBtn = container.querySelector('#btn-next');
-      if (nextBtn) nextBtn.addEventListener('click', () => onMove({ action: 'next' }));
+    // Stand (leave table) — always available
+    var standBtn = container.querySelector('#btn-stand');
+    if (standBtn) {
+      standBtn.onclick = function() {
+        if (confirm('Leave the poker table? Your chips will be forfeited.')) {
+          // Trigger the exit event through the renderer
+          var exitBtn = document.getElementById('btn-minigame-exit');
+          if (exitBtn) exitBtn.click();
+        }
+      };
     }
-  };
 
-  container._pokerUpdate = (newState) => {
+    // Next Hand — any player during showdown
+    if (cur.phase === 'showdown') {
+      var nb = container.querySelector('#btn-next');
+      if (nb) nb.onclick = function() { onMove({ action: 'next' }); };
+    }
+  }
+
+  container._pokerUpdate = function(newState) {
     cur = newState;
     paint();
   };

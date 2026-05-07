@@ -31,8 +31,8 @@ const AVATARS = [
   { name: 'Franco',   key: 'franco',   hasSprite: true  },
   { name: 'Mariann',  key: 'mariann',  hasSprite: true  },
   { name: 'Gwynette', key: 'gwynette', hasSprite: true  },
-  { name: 'Aldwyn',   key: 'aldwyn',   hasSprite: false },
-  { name: 'Rafi',     key: 'rafi',     hasSprite: false },
+  { name: 'Aldwyn',   key: 'aldwyn',   hasSprite: true },
+  { name: 'Rafi',     key: 'rafi',     hasSprite: true },
 ];
 
 let phaserGame = null;
