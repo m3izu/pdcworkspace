@@ -310,6 +310,8 @@ function bindEvents() {
   // Map select
   document.querySelectorAll('.map-card').forEach(card => {
     card.addEventListener('click', () => {
+      if (card.classList.contains('disabled')) return;
+      
       document.querySelectorAll('.map-card').forEach(c => c.classList.remove('selected'));
       card.classList.add('selected');
       state.selectedMap = card.dataset.map;

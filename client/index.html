@@ -7,7 +7,7 @@
   <title>SnappyWorld</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="styles/main.css">
 </head>
 <body>
+  <div class="bg-stars"></div>
 
   <!-- LANDING -->
   <div id="screen-landing" class="screen active">
@@ -25,13 +26,13 @@
         <p class="tagline">A virtual space to meet, chat &amp; hang out</p>
       </div>
       <div class="landing-actions">
-        <button id="btn-create" class="btn btn-primary btn-large">
-          <span class="btn-icon">🏠</span>
-          <span class="btn-content"><span class="btn-title">Create Lobby</span><span class="btn-subtitle">Choose a map and invite friends</span></span>
+        <button id="btn-create" class="btn btn-primary btn-hero">
+          <span class="btn-icon">🏰</span>
+          <span class="btn-content"><span class="btn-title">New Adventure</span><span class="btn-subtitle">Create a private guild house</span></span>
         </button>
-        <button id="btn-join" class="btn btn-secondary btn-large">
-          <span class="btn-icon">🚪</span>
-          <span class="btn-content"><span class="btn-title">Join Lobby</span><span class="btn-subtitle">Enter a 4-digit code to join</span></span>
+        <button id="btn-join" class="btn btn-secondary btn-hero">
+          <span class="btn-icon">🗝️</span>
+          <span class="btn-content"><span class="btn-title">Join Guild</span><span class="btn-subtitle">Enter code to join friends</span></span>
         </button>
       </div>
       <div class="landing-footer"><span class="footer-badge">v1.0 MVP</span></div>
@@ -46,16 +47,16 @@
       <p class="panel-subtitle">Select a space for your lobby</p>
       <div class="map-grid">
         <div class="map-card" data-map="office">
-          <div class="map-preview map-preview-office"><span class="map-emoji">🏢</span></div>
-          <div class="map-info"><h3>USTP</h3><p>Desks, meeting rooms &amp; coffee corner</p></div>
+          <div class="map-preview map-preview-office"><span class="map-emoji">🏠</span></div>
+          <div class="map-info"><h3>Guild House</h3><p>The ultimate tambayan for friends to hang out and play.</p></div>
         </div>
-        <div class="map-card" data-map="lounge">
-          <div class="map-preview map-preview-lounge"><span class="map-emoji">🌿</span></div>
-          <div class="map-info"><h3>Balay ni Aldwyn</h3><p>Cozy sofas, plants &amp; warm vibes</p></div>
+        <div class="map-card disabled">
+          <div class="map-preview map-preview-lounge" style="filter: grayscale(1);"><span class="map-emoji">🚧</span></div>
+          <div class="map-info"><h3>In Development</h3><p>More hangout spots coming soon!</p></div>
         </div>
-        <div class="map-card" data-map="campus">
-          <div class="map-preview map-preview-campus"><span class="map-emoji">🏫</span></div>
-          <div class="map-info"><h3>Tiyan ni Rafi</h3><p>Classrooms, library &amp; open yard</p></div>
+        <div class="map-card disabled">
+          <div class="map-preview map-preview-campus" style="filter: grayscale(1);"><span class="map-emoji">🚧</span></div>
+          <div class="map-info"><h3>In Development</h3><p>Stay tuned for new world updates.</p></div>
         </div>
       </div>
     </div>
@@ -103,6 +104,12 @@
         <span class="di-players" id="di-players-val">1/5</span>
       </div>
       <div class="di-expanded-view">
+        <div class="di-row">
+          <span class="di-label">Status:</span>
+          <span class="di-players" style="color:var(--text-secondary)">Level 1 Guest</span>
+        </div>
+        <div class="di-xp-bar"><div class="di-xp-fill"></div></div>
+        <div class="di-xp-label">XP: 650 / 1000</div>
         <div class="di-row">
           <span class="di-label">Lobby:</span>
           <span class="di-value" id="lobby-code-value"></span>
