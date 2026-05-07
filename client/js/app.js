@@ -76,6 +76,21 @@ function setupSettingsMenu() {
       videoPanel.style.display = e.target.checked ? 'flex' : 'none';
     });
   }
+
+  const toggleVoice = document.getElementById('toggle-voice-chat');
+  const toggleVideoCall = document.getElementById('toggle-video-call');
+
+  if (toggleVoice) {
+    toggleVoice.addEventListener('change', (e) => {
+      if (state.proximityManager) state.proximityManager.toggleAudio(e.target.checked);
+    });
+  }
+
+  if (toggleVideoCall) {
+    toggleVideoCall.addEventListener('change', (e) => {
+      if (state.proximityManager) state.proximityManager.toggleVideo(e.target.checked);
+    });
+  }
 }
 
 // ── Socket Setup ─────────────────────────────────

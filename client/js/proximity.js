@@ -211,6 +211,18 @@ export class ProximityManager {
     if (tile) tile.remove();
   }
 
+  toggleAudio(enabled) {
+    if (this.localStream) {
+      this.localStream.getAudioTracks().forEach(t => t.enabled = enabled);
+    }
+  }
+
+  toggleVideo(enabled) {
+    if (this.localStream) {
+      this.localStream.getVideoTracks().forEach(t => t.enabled = enabled);
+    }
+  }
+
   destroy() {
     if (this.checkTimer) clearInterval(this.checkTimer);
     for (const [sid] of this.activeCalls) {
