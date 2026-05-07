@@ -150,12 +150,23 @@ function initSocket() {
 // ── Avatar Grid Setup ────────────────────────────
 function setupAvatarGrid() {
   const grid = document.getElementById('avatar-grid');
+  if (!grid) return;
   grid.innerHTML = '';
-  AVATARS.forEach((emoji, i) => {
+  AVATARS.forEach((name, i) => {
     const div = document.createElement('div');
     div.className = 'avatar-option';
     div.dataset.avatarId = i;
-    div.textContent = emoji;
+    
+    const img = document.createElement('img');
+    img.src = `assets/avatars/${name.toLowerCase()}.png`;
+    img.alt = name;
+    
+    const label = document.createElement('span');
+    label.textContent = name;
+    
+    div.appendChild(img);
+    div.appendChild(label);
+    
     div.addEventListener('click', () => {
       document.querySelectorAll('.avatar-option').forEach(a => a.classList.remove('selected'));
       div.classList.add('selected');

@@ -242,22 +242,31 @@ body {
   flex-wrap: wrap;
 }
 .avatar-option {
-  min-width: 80px; height: 48px;
-  padding: 0 16px;
+  width: 90px; height: 100px;
+  padding: 10px;
   border-radius: var(--radius-md);
   border: 2px solid var(--border);
   background: var(--bg-card);
   cursor: pointer;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 0.85rem;
-  font-weight: 600;
-  font-family: var(--font);
-  color: var(--text-primary);
+  gap: 8px;
   transition: all 0.2s ease;
 }
-.avatar-option:hover { border-color: var(--accent); transform: scale(1.1); }
+.avatar-option img {
+  width: 52px; height: 52px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+.avatar-option span {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: var(--font);
+}
+.avatar-option:hover { border-color: var(--accent); transform: scale(1.05); }
 .avatar-option.selected {
   border-color: var(--accent);
   box-shadow: 0 0 16px var(--accent-glow);
@@ -1457,8 +1466,9 @@ body {
   .panel-container { padding: 20px; margin: 12px; }
   .hero-title { font-size: 2rem; }
   .hero-subtitle { font-size: 0.85rem; }
-  .avatar-option { width: 56px; height: 56px; }
-  .avatar-option img { width: 44px; height: 44px; }
+  .avatar-option { width: 70px; height: 80px; gap: 4px; }
+  .avatar-option img { width: 36px; height: 36px; }
+  .avatar-option span { font-size: 0.65rem; }
 
   /* HUD badges */
   .lobby-code-badge { top: 8px; left: 8px; padding: 6px 10px; font-size: 0.75rem; }
