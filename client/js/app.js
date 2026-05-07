@@ -157,14 +157,21 @@ function setupAvatarGrid() {
     div.className = 'avatar-option';
     div.dataset.avatarId = i;
     
-    const img = document.createElement('img');
-    img.src = `assets/avatars/${name.toLowerCase()}.png`;
-    img.alt = name;
+    // Character Portrait (Main)
+    const imgProf = document.createElement('img');
+    imgProf.className = 'avatar-prof';
+    imgProf.src = `assets/avatars/${name.toLowerCase()}-prof.png`;
+    
+    // Character Sprite (Hover Preview)
+    const imgPreview = document.createElement('img');
+    imgPreview.className = 'avatar-preview';
+    imgPreview.src = `assets/avatars/${name.toLowerCase()} - Copy.png`;
     
     const label = document.createElement('span');
     label.textContent = name;
     
-    div.appendChild(img);
+    div.appendChild(imgProf);
+    div.appendChild(imgPreview);
     div.appendChild(label);
     
     div.addEventListener('click', () => {

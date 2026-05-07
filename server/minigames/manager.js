@@ -59,7 +59,7 @@ class MinigameManager {
 
     // End active game if they are in it
     if (state.activeGame && state.activeGame.players.includes(socketId)) {
-      this._endGame(lobbyCode, state, null, true);
+      this.handleExit(socketId, lobbyCode);
     }
   }
 
