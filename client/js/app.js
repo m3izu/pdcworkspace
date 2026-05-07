@@ -47,7 +47,6 @@ function showToast(text, type = '') {
   toast.textContent = text;
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 3000);
-  setupSettingsMenu();
 }
 
 function setupSettingsMenu() {
@@ -410,6 +409,16 @@ function bindEvents() {
     state.socket = initSocket();
     showScreen('screen-landing');
   });
+
+  // Dynamic Island Toggle
+  const island = document.getElementById('dynamic-island');
+  if (island) {
+    island.addEventListener('click', (e) => {
+      // Don't toggle if clicking a button inside
+      if (e.target.closest('button')) return;
+      island.classList.toggle('active');
+    });
+  }
 }
 
 // ── Init ─────────────────────────────────────────
@@ -417,6 +426,7 @@ function init() {
   initSocket();
   setupAvatarGrid();
   setupCodeInput();
+  setupSettingsMenu();
   bindEvents();
 }
 
