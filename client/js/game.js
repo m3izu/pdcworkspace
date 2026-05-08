@@ -213,6 +213,9 @@ class GameScene extends Phaser.Scene {
       spawnY = 3 * TILE_SIZE + TILE_SIZE / 2;
     }
 
+    this.defaultSpawnX = spawnX;
+    this.defaultSpawnY = spawnY;
+
     // Draw Minigame Trigger Zones (glowing areas with labels)
     this.triggerZones = [];
     if (mapDef.triggers) {
@@ -311,6 +314,17 @@ class GameScene extends Phaser.Scene {
     // Initialize minigame renderer (client-side UI handler)
     this.minigameRenderer = MinigameRenderer;
     this.minigameRenderer.init(this.config.socket);
+
+    this.lastEmitTime = this.time ? this.time.now : 0;
+
+    // Force initial sync so server has correct spawn coordinates
+    this.config.socket.emit('player:move', {
+      x: Math.round(spawnX),
+      y: Math.round(spawnY),
+      direction: 'down'
+    });
+    this.lastSentPos.x = spawnX;
+    this.lastSentPos.y = spawnY;
 
     // Spawn existing remote players
     for (const p of this.config.players) {
@@ -443,8 +457,8 @@ class GameScene extends Phaser.Scene {
   }
 
   _addRemotePlayer(playerData) {
-    const spawnX = playerData.x || (4 * TILE_SIZE + TILE_SIZE / 2);
-    const spawnY = playerData.y || (4 * TILE_SIZE + TILE_SIZE / 2);
+    const spawnX = playerData.x || this.defaultSpawnX || (4 * 32 + 16);
+    const spawnY = playerData.y || this.defaultSpawnY || (4 * 32 + 16);
     const sprite = this._createPlayerSprite(spawnX, spawnY, playerData.avatarId, false);
     sprite._targetX = spawnX;
     sprite._targetY = spawnY;
