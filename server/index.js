@@ -94,13 +94,7 @@ io.on('connection', (socket) => {
 
   // ── Player Movement ────────────────────────────────────
   socket.on('player:move', ({ x, y, direction, frame }) => {
-    const result = lobbyManager.updatePlayerPosition(socket.id, x, y, direction, frame);
-    if (result) {
-      socket.to(result.code).emit('player:moved', {
-        id: socket.id,
-        x, y, direction, frame
-      });
-    }
+    lobbyManager.updatePlayerPosition(socket.id, x, y, direction, frame);
   });
 
   // ── PeerJS ID Registration ─────────────────────────────
@@ -216,6 +210,28 @@ io.on('connection', (socket) => {
     }
   });
 });
+
+// ── Server Sync Loop (20Hz) ──────────────────────────────
+setInterval(() => {
+  const dirtyCodes = lobbyManager.getAndClearDirtyLobbies();
+  for (const code of dirtyCodes) {
+    const lobby = lobbyManager.getLobby(code);
+    if (!lobby) continue;
+
+    const positions = [];
+    for (const [id, player] of lobby.players) {
+      positions.push({
+        id,
+        x: player.x,
+        y: player.y,
+        direction: player.direction,
+        frame: player.frame
+      });
+    }
+
+    io.to(code).emit('lobby:sync', positions);
+  }
+}, 50);
 
 // ── Start Server ─────────────────────────────────────────
 server.listen(PORT, () => {

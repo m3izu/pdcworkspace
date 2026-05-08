@@ -39,6 +39,9 @@ function validateShips(data) {
 module.exports = {
   id: 'battleship',
   name: 'Battleship',
+  minPlayers: 2,
+  maxPlayers: 2,
+  flexibleStart: true,
   playerCount: 2,
   roles: ['A', 'B'],
 

@@ -64,6 +64,9 @@ function getAllMoves(board, color, mustFrom) {
 module.exports = {
   id: 'checkers',
   name: 'Checkers',
+  minPlayers: 2,
+  maxPlayers: 2,
+  flexibleStart: true,
   playerCount: 2,
   roles: ['red', 'black'],
 

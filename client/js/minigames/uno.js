@@ -121,7 +121,7 @@ export default {
           <div class="uno-table">
             <div class="uno-pile-group">
               <div class="uno-pile-label">Draw</div>
-              <div class="uno-draw-pile ${isMyTurn && !cur.hasDrawn ? 'clickable' : ''}" id="uno-draw">
+              <div class="uno-draw-pile ${isMyTurn ? 'clickable' : ''}" id="uno-draw">
                 ${renderUnoCard({ rank: '?', id: -1 }, false, false)}
                 ${cur.drawPending > 0 ? `<div class="uno-pending-badge">+${cur.drawPending}</div>` : ''}
               </div>

@@ -6,21 +6,22 @@ function getSpriteUrl(card, isHidden) {
 }
 
 function renderCard(card, isHidden, isSmall) {
-  var w = isSmall ? 42 : 60;
-  var h = isSmall ? 59 : 84;
-  var dims = 'width:' + w + 'px;height:' + h + 'px;';
-  
+  var cls = isSmall ? 'pk-card pk-card-small' : 'pk-card';
   if (!card || card.rank === '?') {
-    return '<div style="' + dims + 'background:rgba(0,0,0,0.15);border:4px solid rgba(255,255,255,0.1);margin:0 2px;flex-shrink:0;"></div>';
+    return '<div class="' + cls + ' pk-card-empty"></div>';
   }
-
   var url = getSpriteUrl(card, isHidden);
-  return '<div style="' + dims + 'margin:0 2px;flex-shrink:0;">' +
-    '<img src="' + url + '" style="width:100%;height:100%;object-fit:contain;border:4px solid #fff;box-shadow:4px 4px 0 #000;">' +
+  return '<div class="' + cls + '">' +
+    '<img src="' + url + '">' +
     '</div>';
 }
 
 var POKER_CSS = [
+  '.pk-card{width:60px;height:84px;margin:0 2px;flex-shrink:0;box-sizing:border-box;}',
+  '.pk-card-small{width:42px;height:59px;}',
+  '.pk-card-empty{background:rgba(0,0,0,0.15);border:4px solid rgba(255,255,255,0.1);}',
+  '.pk-card img{width:100%;height:100%;object-fit:contain;border:4px solid #fff;box-shadow:4px 4px 0 #000;box-sizing:border-box;}',
+
   '.pk-wrap{display:flex;flex-direction:column;height:100%;gap:8px;padding:8px;box-sizing:border-box;color:#fff;font-family:var(--font-body)}',
   '.pk-guide{background:#000;border:2px solid #fff;padding:6px 10px;font-size:14px;margin-bottom:2px;box-shadow:4px 4px 0 rgba(0,0,0,0.5)}',
   '.pk-guide summary{cursor:pointer;color:var(--accent);font-family:var(--font-main);font-size:10px}',
@@ -33,7 +34,7 @@ var POKER_CSS = [
   '.pk-cc{display:flex;justify-content:center;gap:4px;flex-wrap:nowrap}',
   '.pk-action{font-size:12px;color:var(--accent);text-align:center;margin-top:4px;min-height:14px;font-family:var(--font-body)}',
 
-  '.pk-opp{position:absolute;background:#000;padding:8px 12px;border:4px solid #fff;text-align:center;box-shadow:6px 6px 0 rgba(0,0,0,0.5);z-index:5;min-width:80px}',
+  '.pk-opp{position:absolute;background:#000;padding:8px 12px;border:4px solid #fff;text-align:center;box-shadow:6px 6px 0 rgba(0,0,0,0.5);z-index:5;min-width:80px;box-sizing:border-box;}',
   '.pk-opp.on{border-color:var(--accent);box-shadow:0 0 16px var(--accent)}',
   '.pk-opp.out{opacity:0.4;filter:grayscale(1)}',
   '.pk-opp-cards{display:flex;justify-content:center;gap:2px;margin-bottom:4px}',
@@ -55,17 +56,37 @@ var POKER_CSS = [
   '.pk-chips{color:var(--accent);font-family:var(--font-main);font-size:12px}',
   '.pk-bet{color:#3498db;font-family:var(--font-main);font-size:8px;background:#000;border:1px solid #3498db;padding:2px 6px;display:inline-block;margin-top:2px}',
   '.pk-msg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg-window);border:8px solid #fff;color:#fff;padding:24px;text-align:center;z-index:100;font-family:var(--font-main);font-size:12px;width:78%;box-shadow:12px 12px 0 rgba(0,0,0,0.8)}',
-  '@media (max-width: 600px) {',
-  '  .pk-table{min-height:220px;padding:10px;border-width:5px}',
-  '  .pk-pot{font-size:16px;padding:3px 10px}',
-  '  .pk-dash{padding:8px;gap:6px}',
-  '  .pk-btn{padding:7px 4px;font-size:10px}',
-  '  .pk-chips{font-size:11px}',
-  '  .pk-me-info div{font-size:11px !important}',
-  '  .pk-opp{min-width:70px;padding:4px 6px}',
-  '  .pk-opp-cards img{width:30px;height:42px}',
-  '  .pk-cc div{width:45px !important;height:63px !important}',
-  '  .pk-hole div{width:45px !important;height:63px !important}',
+
+  /* Medium Devices (Tablets/Laptops) */
+  '@media (max-width: 1024px) {',
+  '  .pk-card{width:50px;height:70px;}',
+  '  .pk-card-small{width:36px;height:50px;}',
+  '}',
+
+  /* Small Devices (Tablets Portrait) */
+  '@media (max-width: 768px) {',
+  '  .pk-card{width:45px;height:63px;}',
+  '  .pk-card-small{width:32px;height:45px;}',
+  '  .pk-card img{border-width:2px;box-shadow:2px 2px 0 #000;}',
+  '  .pk-table{min-height:240px;padding:10px;border-width:5px;}',
+  '  .pk-opp{min-width:70px;padding:6px;font-size:10px;}',
+  '}',
+
+  /* Extra Small Devices (Mobile) */
+  '@media (max-width: 480px) {',
+  '  .pk-card{width:34px;height:48px;}',
+  '  .pk-card-small{width:26px;height:36px;}',
+  '  .pk-card img{border-width:2px;box-shadow:2px 2px 0 #000;}',
+  '  .pk-card-empty{border-width:2px;}',
+  '  .pk-table{min-height:200px;padding:8px;border-width:4px;}',
+  '  .pk-pot{font-size:14px;padding:3px 8px;}',
+  '  .pk-dash{padding:8px;gap:6px;}',
+  '  .pk-btn{padding:7px 4px;font-size:9px;border-width:3px;}',
+  '  .pk-chips{font-size:11px;}',
+  '  .pk-me-info div{font-size:10px !important;}',
+  '  .pk-opp{min-width:60px;padding:2px 4px;font-size:9px;}',
+  '  .pk-action{font-size:10px;}',
+  '  .pk-msg{width:90%;font-size:10px;padding:12px;}',
   '}'
 ].join('\n');
 

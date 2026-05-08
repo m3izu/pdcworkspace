@@ -189,10 +189,7 @@ module.exports = {
       }
 
       case 'draw': {
-        if (state.hasDrawn && state.drawPending === 0) {
-          // Already drew, must pass
-          return { state, events: [] };
-        }
+        // Removed the restriction so players can keep drawing if they can't play.
 
         let drawCount = state.drawPending > 0 ? state.drawPending : 1;
         state.drawPending = 0;

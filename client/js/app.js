@@ -138,9 +138,13 @@ function initSocket() {
     showScreen('screen-disconnected');
   });
 
-  // Player movement
-  socket.on('player:moved', (data) => {
-    window.dispatchEvent(new CustomEvent('lobby:player-moved', { detail: data }));
+  // Player movement (batched sync)
+  socket.on('lobby:sync', (positions) => {
+    for (const data of positions) {
+      if (data.id !== socket.id) {
+        window.dispatchEvent(new CustomEvent('lobby:player-moved', { detail: data }));
+      }
+    }
   });
 
   // Peer registration from other players

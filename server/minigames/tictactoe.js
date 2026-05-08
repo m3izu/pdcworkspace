@@ -7,6 +7,9 @@ const WINNING_LINES = [
 module.exports = {
   id: 'tictactoe',
   name: 'Tic-Tac-Toe',
+  minPlayers: 2,
+  maxPlayers: 2,
+  flexibleStart: true,
   playerCount: 2,
   roles: ['X', 'O'],
 

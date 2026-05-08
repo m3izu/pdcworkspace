@@ -20,6 +20,8 @@ class LobbyManager {
     this.playerLobbyMap = new Map();
     /** @type {Map<string, NodeJS.Timeout>} lobbyCode -> timeout */
     this.hostGraceTimers = new Map();
+    /** @type {Set<string>} lobby codes that need syncing */
+    this.dirtyLobbies = new Set();
   }
 
   /**
@@ -217,7 +219,19 @@ class LobbyManager {
     if (direction !== undefined) player.direction = direction;
     if (frame !== undefined) player.frame = frame;
 
+    this.dirtyLobbies.add(code);
+
     return { code, player };
+  }
+
+  /**
+   * Get and clear the set of dirty lobbies that need network syncing
+   * @returns {string[]}
+   */
+  getAndClearDirtyLobbies() {
+    const lobbies = Array.from(this.dirtyLobbies);
+    this.dirtyLobbies.clear();
+    return lobbies;
   }
 
   /**

@@ -608,7 +608,7 @@ class GameScene extends Phaser.Scene {
     this.chatBubbles.set(id, bubble);
   }
 
-  update() {
+  update(time, delta) {
     if (!this.myPlayer) return;
 
     // Freeze player if minigame is active
@@ -691,10 +691,10 @@ class GameScene extends Phaser.Scene {
       myBubble.y = this.myPlayer.y - 50;
     }
 
-    // Emit position + direction if changed
+    // Emit position + direction if changed (throttled to max 20Hz / 50ms)
     const dx = Math.abs(this.myPlayer.x - this.lastSentPos.x);
     const dy = Math.abs(this.myPlayer.y - this.lastSentPos.y);
-    if (dx > 1 || dy > 1) {
+    if ((dx > 1 || dy > 1) && (!this.lastEmitTime || time - this.lastEmitTime > 50)) {
       this.config.socket.emit('player:move', {
         x: Math.round(this.myPlayer.x),
         y: Math.round(this.myPlayer.y),
@@ -702,6 +702,7 @@ class GameScene extends Phaser.Scene {
       });
       this.lastSentPos.x = this.myPlayer.x;
       this.lastSentPos.y = this.myPlayer.y;
+      this.lastEmitTime = time;
     }
 
     // ── Proximity-based minigame trigger detection ──────────
@@ -751,8 +752,8 @@ class GameScene extends Phaser.Scene {
     // Lerp remote players
     for (const [id, sprite] of this.remotePlayers) {
       if (sprite._targetX !== undefined) {
-        sprite.x = Phaser.Math.Linear(sprite.x, sprite._targetX, 0.15);
-        sprite.y = Phaser.Math.Linear(sprite.y, sprite._targetY, 0.15);
+        sprite.x = Phaser.Math.Linear(sprite.x, sprite._targetX, 0.3);
+        sprite.y = Phaser.Math.Linear(sprite.y, sprite._targetY, 0.3);
         if (sprite._label) sprite._label.setPosition(sprite.x, sprite.y);
         if (sprite._shadow) sprite._shadow.setPosition(sprite.x, sprite.y + 14);
         const tag = this.nameTexts.get(id);

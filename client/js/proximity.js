@@ -6,6 +6,7 @@
 const PROXIMITY_THRESHOLD = 150; // pixels
 const MAX_DISTANCE = 250;        // for volume scaling
 const CHECK_INTERVAL = 200;      // ms between proximity checks
+const MAX_ACTIVE_CALLS = 5;      // maximum simultaneous WebRTC connections
 
 export class ProximityManager {
   constructor(socket) {
@@ -84,11 +85,31 @@ export class ProximityManager {
     if (!myPos) return;
 
     const remotePositions = scene.getRemotePositions();
+    const distances = [];
 
+    // Calculate all distances
     for (const [socketId, pos] of Object.entries(remotePositions)) {
       const dist = Phaser.Math.Distance.Between(myPos.x, myPos.y, pos.x, pos.y);
+      distances.push({ socketId, dist });
+    }
 
-      if (dist < PROXIMITY_THRESHOLD) {
+    // Sort by closest first
+    distances.sort((a, b) => a.dist - b.dist);
+
+    const allowedCalls = new Set();
+    let callsCount = 0;
+
+    // Pick top N closest players within threshold
+    for (const { socketId, dist } of distances) {
+      if (dist < PROXIMITY_THRESHOLD && callsCount < MAX_ACTIVE_CALLS) {
+        allowedCalls.add(socketId);
+        callsCount++;
+      }
+    }
+
+    // Process calls
+    for (const { socketId, dist } of distances) {
+      if (allowedCalls.has(socketId)) {
         // Should be in call
         if (!this.activeCalls.has(socketId)) {
           this._startCall(socketId);
@@ -96,7 +117,7 @@ export class ProximityManager {
         // Adjust volume
         this._setVolume(socketId, dist);
       } else {
-        // Should not be in call
+        // Should not be in call (too far or too many people)
         if (this.activeCalls.has(socketId)) {
           this._endCall(socketId);
         }

@@ -69,6 +69,9 @@ function canLayOff(card, meld) {
 module.exports = {
   id: 'tongits',
   name: 'Tong-its',
+  minPlayers: 3,
+  maxPlayers: 3,
+  flexibleStart: true,
   playerCount: 3,
   roles: ['player1', 'player2', 'player3'],
 
