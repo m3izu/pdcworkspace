@@ -97,46 +97,60 @@
   <div id="screen-game" class="screen">
     <div id="game-container"></div>
     
-    <!-- DYNAMIC ISLAND HUD -->
-    <div id="dynamic-island" class="dynamic-island">
-      <div class="di-collapsed-view">
-        <span class="di-code" id="di-code-val"></span>
-        <span class="di-players" id="di-players-val">1/5</span>
+    <!-- MOBILE SNACKBAR TOGGLE -->
+    <button id="btn-mobile-menu" class="btn-mobile-menu" style="display: none;">☰</button>
+    
+    <!-- HUD WRAPPER (Becomes Snackbar on Mobile) -->
+    <div id="mobile-snackbar" class="mobile-snackbar">
+      <div class="snackbar-header">
+        <span class="snackbar-title">Game Menu</span>
+        <button id="btn-close-snackbar" class="btn-close-snackbar">✕</button>
       </div>
-      <div class="di-expanded-view">
-        <div class="di-row">
-          <span class="di-label">Status:</span>
-          <span class="di-players" style="color:var(--text-secondary)">Level 1 Guest</span>
+      <div class="snackbar-content">
+        <!-- DYNAMIC ISLAND HUD -->
+        <div id="dynamic-island" class="dynamic-island">
+          <div class="di-collapsed-view">
+            <span class="di-code" id="di-code-val"></span>
+            <span class="di-players" id="di-players-val">1/5</span>
+          </div>
+          <div class="di-expanded-view">
+            <div class="di-row">
+              <span class="di-label">Status:</span>
+              <span class="di-players" style="color:var(--text-secondary)">Level 1 Guest</span>
+            </div>
+            <div class="di-xp-bar"><div class="di-xp-fill"></div></div>
+            <div class="di-xp-label">XP: 650 / 1000</div>
+            <div class="di-row">
+              <span class="di-label">Lobby:</span>
+              <span class="di-value" id="lobby-code-value"></span>
+              <button class="di-btn" id="btn-copy-code" title="Copy code">📋</button>
+            </div>
+            <div class="di-row">
+              <span class="di-label">Players:</span>
+              <span class="di-value" id="player-count-value">1</span><span class="di-sub">/5</span>
+            </div>
+            <div class="di-actions">
+              <button id="btn-settings" class="di-action-btn" title="Settings">⚙️ Preferences</button>
+              <button id="btn-leave" class="di-action-btn danger" title="Leave lobby">🚪 Leave</button>
+            </div>
+          </div>
         </div>
-        <div class="di-xp-bar"><div class="di-xp-fill"></div></div>
-        <div class="di-xp-label">XP: 650 / 1000</div>
-        <div class="di-row">
-          <span class="di-label">Lobby:</span>
-          <span class="di-value" id="lobby-code-value"></span>
-          <button class="di-btn" id="btn-copy-code" title="Copy code">📋</button>
-        </div>
-        <div class="di-row">
-          <span class="di-label">Players:</span>
-          <span class="di-value" id="player-count-value">1</span><span class="di-sub">/5</span>
-        </div>
-        <div class="di-actions">
-          <button id="btn-settings" class="di-action-btn" title="Settings">⚙️ Preferences</button>
-          <button id="btn-leave" class="di-action-btn danger" title="Leave lobby">🚪 Leave</button>
+
+        <!-- INVISIBLE CHAT UI -->
+        <div id="chat-panel" class="chat-panel invisible-chat">
+          <div id="chat-messages" class="chat-messages"></div>
+          <div class="chat-input-row" id="chat-input-container">
+            <input type="text" id="input-chat" class="chat-input" placeholder="Press Enter to chat..." maxlength="500" autocomplete="off">
+            <button id="btn-send-chat" class="btn-send">▶</button>
+          </div>
         </div>
       </div>
     </div>
-
+    
     <!-- CIRCULAR VIDEO DOCK -->
+    <!-- Video panel needs to remain outside the snackbar so it can stay visible on screen -->
     <div id="video-panel" class="video-panel floating-dock"></div>
 
-    <!-- INVISIBLE CHAT UI -->
-    <div id="chat-panel" class="chat-panel invisible-chat">
-      <div id="chat-messages" class="chat-messages"></div>
-      <div class="chat-input-row" id="chat-input-container">
-        <input type="text" id="input-chat" class="chat-input" placeholder="Press Enter to chat..." maxlength="500" autocomplete="off">
-        <button id="btn-send-chat" class="btn-send">▶</button>
-      </div>
-    </div>
     
     <!-- SETTINGS MENU -->
     <div id="settings-overlay" class="settings-overlay" style="display:none;">

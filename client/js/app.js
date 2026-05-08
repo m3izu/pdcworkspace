@@ -421,6 +421,32 @@ function bindEvents() {
       island.classList.toggle('active');
     });
   }
+
+  // Mobile Snackbar Toggle
+  const btnMobileMenu = document.getElementById('btn-mobile-menu');
+  const btnCloseSnackbar = document.getElementById('btn-close-snackbar');
+  const mobileSnackbar = document.getElementById('mobile-snackbar');
+
+  if (btnMobileMenu && mobileSnackbar) {
+    btnMobileMenu.addEventListener('click', () => {
+      mobileSnackbar.classList.add('active');
+      btnMobileMenu.style.display = 'none';
+    });
+  }
+  if (btnCloseSnackbar && mobileSnackbar) {
+    btnCloseSnackbar.addEventListener('click', () => {
+      mobileSnackbar.classList.remove('active');
+      btnMobileMenu.style.display = 'block';
+    });
+  }
+
+  // Video Panel Toggle Size
+  const videoPanel = document.getElementById('video-panel');
+  if (videoPanel) {
+    videoPanel.addEventListener('click', (e) => {
+      videoPanel.classList.toggle('large-view');
+    });
+  }
 }
 
 // ── Init ─────────────────────────────────────────
