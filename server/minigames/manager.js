@@ -200,7 +200,7 @@ class MinigameManager {
     // Build roles
     let roles;
     if (game.flexibleStart) {
-      roles = gameState.roles || playerIds.map((_, i) => `p${i + 1}`);
+      roles = gameState.roles || game.roles || playerIds.map((_, i) => `p${i + 1}`);
     } else {
       roles = game.roles || ['X', 'O'];
     }

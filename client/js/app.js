@@ -39,6 +39,12 @@ function showScreen(id) {
     el.offsetHeight; // trigger reflow
     el.style.animation = '';
   }
+
+  if (id === 'screen-game') {
+    document.body.classList.add('in-game');
+  } else {
+    document.body.classList.remove('in-game');
+  }
 }
 
 function showToast(text, type = '') {
@@ -140,9 +146,12 @@ function initSocket() {
 
   // Player movement (batched sync)
   socket.on('lobby:sync', (positions) => {
-    for (const data of positions) {
-      if (data.id !== socket.id) {
-        window.dispatchEvent(new CustomEvent('lobby:player-moved', { detail: data }));
+    for (const arr of positions) {
+      const id = arr[0];
+      if (id !== socket.id) {
+        window.dispatchEvent(new CustomEvent('lobby:player-moved', { 
+          detail: { id, x: arr[1], y: arr[2], direction: arr[3], frame: arr[4] } 
+        }));
       }
     }
   });

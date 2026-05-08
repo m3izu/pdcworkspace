@@ -66,6 +66,7 @@ class GameScene extends Phaser.Scene {
     this.remotePlayers = new Map();
     this.nameTexts = new Map();
     this.chatBubbles = new Map();
+    this.chatBubblePool = [];
     this.collisionLayers = [];
     this.config = null;
     this.myPlayer = null;
@@ -241,6 +242,7 @@ class GameScene extends Phaser.Scene {
         // No text label for trigger zones - keep it clean
         this.triggerZones.push({
           game: trigger.game,
+          tiles: trigger.tiles,
           cx, cy,
           halfW: ((maxX - minX + 1) / 2 + 1) * TILE_SIZE,
           halfH: ((maxY - minY + 1) / 2 + 1) * TILE_SIZE,
@@ -314,6 +316,17 @@ class GameScene extends Phaser.Scene {
     // Initialize minigame renderer (client-side UI handler)
     this.minigameRenderer = MinigameRenderer;
     this.minigameRenderer.init(this.config.socket);
+
+    // Initialize Chat Bubble Pool
+    this.chatBubblePool = [];
+    for (let i = 0; i < 25; i++) {
+      const bubble = this.add.text(0, 0, '', {
+        fontSize: '11px', fontFamily: 'Inter, sans-serif', color: '#000000',
+        backgroundColor: '#ffffff', padding: { x: 8, y: 6 }, align: 'center',
+      }).setOrigin(0.5, 1).setDepth(20).setVisible(false).setActive(false);
+      bubble.setStroke('#ffffff', 4);
+      this.chatBubblePool.push(bubble);
+    }
 
     this.lastEmitTime = this.time ? this.time.now : 0;
 
@@ -564,7 +577,7 @@ class GameScene extends Phaser.Scene {
     if (!sprite) return;
 
     if (this.chatBubbles.has(id)) {
-      this.chatBubbles.get(id).destroy();
+      this._returnBubbleToPool(this.chatBubbles.get(id));
     }
 
     const maxLineLength = 20;
@@ -581,20 +594,17 @@ class GameScene extends Phaser.Scene {
     }
     wrappedText += currentLine.trim();
 
-    const bubble = this.add.text(sprite.x, sprite.y - 45, wrappedText, {
-      fontSize: '11px',
-      fontFamily: 'Inter, sans-serif',
-      color: '#000000',
-      backgroundColor: '#ffffff',
-      padding: { x: 8, y: 6 },
-      align: 'center',
-    }).setOrigin(0.5, 1).setDepth(20);
+    const bubble = this._getBubbleFromPool();
+    if (!bubble) return; // Pool empty
+    
+    bubble.setText(wrappedText);
+    bubble.setPosition(sprite.x, sprite.y - 45);
+    bubble.setVisible(true).setActive(true);
+    bubble.setAlpha(0);
 
-    // Add a slight border radius effect using stroke
-    bubble.setStroke('#ffffff', 4);
+    this.tweens.killTweensOf(bubble);
 
     // Fade in and float up slightly
-    bubble.setAlpha(0);
     this.tweens.add({
       targets: bubble,
       alpha: 1,
@@ -604,7 +614,7 @@ class GameScene extends Phaser.Scene {
     });
 
     // Auto-destroy after 5 seconds
-    this.time.delayedCall(5000, () => {
+    bubble._hideTimer = this.time.delayedCall(5000, () => {
       this.tweens.add({
         targets: bubble,
         alpha: 0,
@@ -614,12 +624,22 @@ class GameScene extends Phaser.Scene {
           if (this.chatBubbles.get(id) === bubble) {
             this.chatBubbles.delete(id);
           }
-          bubble.destroy();
+          this._returnBubbleToPool(bubble);
         }
       });
     });
 
     this.chatBubbles.set(id, bubble);
+  }
+
+  _getBubbleFromPool() {
+    return this.chatBubblePool.find(b => !b.active);
+  }
+
+  _returnBubbleToPool(bubble) {
+    if (bubble._hideTimer) bubble._hideTimer.remove();
+    this.tweens.killTweensOf(bubble);
+    bubble.setVisible(false).setActive(false);
   }
 
   update(time, delta) {
@@ -723,10 +743,14 @@ class GameScene extends Phaser.Scene {
     if (this.triggerZones && this.triggerZones.length > 0) {
       const px = this.myPlayer.x;
       const py = this.myPlayer.y;
+      
+      const tileX = Math.floor(px / TILE_SIZE);
+      const tileY = Math.floor(py / TILE_SIZE);
+      
       let found = null;
 
       for (const zone of this.triggerZones) {
-        if (Math.abs(px - zone.cx) < zone.halfW && Math.abs(py - zone.cy) < zone.halfH) {
+        if (zone.tiles && zone.tiles.some(t => t.x === tileX && t.y === tileY)) {
           found = zone;
           break;
         }
@@ -764,8 +788,22 @@ class GameScene extends Phaser.Scene {
     }
 
     // Lerp remote players
+    const cam = this.cameras.main;
+    const viewLeft = cam.scrollX - 200;
+    const viewRight = cam.scrollX + cam.width + 200;
+    const viewTop = cam.scrollY - 200;
+    const viewBottom = cam.scrollY + cam.height + 200;
+
     for (const [id, sprite] of this.remotePlayers) {
       if (sprite._targetX !== undefined) {
+        // Frustum Culling: Skip logic if off-screen
+        if (sprite.x < viewLeft || sprite.x > viewRight || sprite.y < viewTop || sprite.y > viewBottom) {
+          sprite.x = sprite._targetX;
+          sprite.y = sprite._targetY;
+          if (sprite.anims && sprite.anims.isPlaying) sprite.anims.stop();
+          continue;
+        }
+
         sprite.x = Phaser.Math.Linear(sprite.x, sprite._targetX, 0.3);
         sprite.y = Phaser.Math.Linear(sprite.y, sprite._targetY, 0.3);
         if (sprite._label) sprite._label.setPosition(sprite.x, sprite.y);
@@ -813,6 +851,7 @@ export function initGame({ mapId, players, mySocketId, socket }) {
     width: window.innerWidth,
     height: window.innerHeight,
     backgroundColor: '#0a0e1a',
+    fps: { target: 60, forceSetTimeOut: true },
     physics: {
       default: 'arcade',
       arcade: { gravity: { y: 0 }, debug: false }

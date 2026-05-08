@@ -220,16 +220,15 @@ setInterval(() => {
 
     const positions = [];
     for (const [id, player] of lobby.players) {
-      positions.push({
-        id,
-        x: player.x,
-        y: player.y,
-        direction: player.direction,
-        frame: player.frame
-      });
+      if (player.isDirty) {
+        positions.push([id, player.x, player.y, player.direction, player.frame]);
+        player.isDirty = false;
+      }
     }
 
-    io.to(code).emit('lobby:sync', positions);
+    if (positions.length > 0) {
+      io.to(code).emit('lobby:sync', positions);
+    }
   }
 }, 50);
 

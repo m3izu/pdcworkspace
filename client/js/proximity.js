@@ -15,6 +15,7 @@ export class ProximityManager {
     this.localStream = null;
     this.activeCalls = new Map();  // socketId -> { call, videoEl }
     this.peerIdMap = new Map();    // socketId -> peerId
+    this.callTeardownTimers = new Map(); // socketId -> timeoutId
     this.checkTimer = null;
     this.videoPanel = document.getElementById('video-panel');
   }
@@ -110,6 +111,12 @@ export class ProximityManager {
     // Process calls
     for (const { socketId, dist } of distances) {
       if (allowedCalls.has(socketId)) {
+        // Clear teardown timer if they came back into range
+        if (this.callTeardownTimers.has(socketId)) {
+          clearTimeout(this.callTeardownTimers.get(socketId));
+          this.callTeardownTimers.delete(socketId);
+        }
+
         // Should be in call
         if (!this.activeCalls.has(socketId)) {
           this._startCall(socketId);
@@ -118,8 +125,16 @@ export class ProximityManager {
         this._setVolume(socketId, dist);
       } else {
         // Should not be in call (too far or too many people)
-        if (this.activeCalls.has(socketId)) {
-          this._endCall(socketId);
+        if (this.activeCalls.has(socketId) && !this.callTeardownTimers.has(socketId)) {
+          // Instantly mute them to give illusion they are gone
+          this._setVolume(socketId, MAX_DISTANCE);
+          
+          // Schedule actual teardown for 3 seconds later
+          const timer = setTimeout(() => {
+            this._endCall(socketId);
+            this.callTeardownTimers.delete(socketId);
+          }, 3000);
+          this.callTeardownTimers.set(socketId, timer);
         }
       }
     }
@@ -130,6 +145,8 @@ export class ProximityManager {
         this._endCall(socketId);
       }
     }
+    
+    this._updateBroadcastUI();
   }
 
   _startCall(socketId) {
@@ -178,6 +195,7 @@ export class ProximityManager {
     // Store call even before stream arrives
     if (!this.activeCalls.has(socketId)) {
       this.activeCalls.set(socketId, { call, videoEl: null });
+      this._updateBroadcastUI();
     }
   }
 
@@ -187,6 +205,36 @@ export class ProximityManager {
       if (entry.call) entry.call.close();
       this._removeVideoTile(socketId);
       this.activeCalls.delete(socketId);
+      this._updateBroadcastUI();
+      if (this.videoPanel.childElementCount === 0) {
+        this.videoPanel.style.display = 'none';
+      }
+    }
+    
+    if (this.callTeardownTimers.has(socketId)) {
+      clearTimeout(this.callTeardownTimers.get(socketId));
+      this.callTeardownTimers.delete(socketId);
+    }
+  }
+
+  _updateBroadcastUI() {
+    const statusEl = document.getElementById('broadcast-status');
+    const textEl = document.getElementById('broadcast-text');
+    if (!statusEl || !textEl) return;
+
+    // We only count calls that aren't pending teardown as "active" for the UI
+    let activeCount = 0;
+    for (const socketId of this.activeCalls.keys()) {
+      if (!this.callTeardownTimers.has(socketId)) {
+        activeCount++;
+      }
+    }
+
+    if (activeCount > 0) {
+      statusEl.style.display = 'flex';
+      textEl.textContent = `Live (${activeCount} nearby)`;
+    } else {
+      statusEl.style.display = 'none';
     }
   }
 

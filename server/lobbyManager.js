@@ -218,6 +218,7 @@ class LobbyManager {
     player.y = y;
     if (direction !== undefined) player.direction = direction;
     if (frame !== undefined) player.frame = frame;
+    player.isDirty = true;
 
     this.dirtyLobbies.add(code);
 
