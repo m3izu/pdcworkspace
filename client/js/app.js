@@ -22,6 +22,8 @@ const state = {
   lobby: null,
   chatManager: null,
   proximityManager: null,
+  instanceAudio: null,
+  availableSongs: []
 };
 
 window.APP_SETTINGS = {
@@ -467,6 +469,103 @@ function bindEvents() {
       videoPanel.classList.toggle('large-view');
     });
   }
+
+  // Welcome Book
+  window.addEventListener('ui:open-book', () => {
+    document.getElementById('book-overlay').style.display = 'flex';
+    if (window.__gameScene) window.__gameScene.isMinigameActive = true;
+  });
+
+  document.getElementById('btn-close-book').addEventListener('click', () => {
+    document.getElementById('book-overlay').style.display = 'none';
+    if (window.__gameScene) window.__gameScene.isMinigameActive = false;
+  });
+
+  // Instance Music
+  const musicList = document.getElementById('music-song-list');
+  const btnStop = document.getElementById('btn-music-stop');
+  const btnPause = document.getElementById('btn-music-pause');
+  const btnResume = document.getElementById('btn-music-resume');
+  const currentInfo = document.getElementById('current-song-info');
+
+  btnStop.addEventListener('click', () => state.socket.emit('music:control', { command: 'stop' }));
+  btnPause.addEventListener('click', () => state.socket.emit('music:control', { command: 'pause' }));
+  btnResume.addEventListener('click', () => state.socket.emit('music:control', { command: 'resume' }));
+
+  state.socket.on('music:sync', (musicState) => {
+    updateMusicUI(musicState);
+  });
+
+  function updateMusicUI(musicState) {
+    if (!state.instanceAudio) {
+      state.instanceAudio = new Audio();
+      state.instanceAudio.volume = 0.5;
+    }
+
+    if (!musicState.currentSong) {
+      state.instanceAudio.pause();
+      state.instanceAudio.src = '';
+      currentInfo.textContent = 'No music playing';
+      btnPause.style.display = 'none';
+      btnResume.style.display = 'none';
+      return;
+    }
+
+    const song = musicState.currentSong;
+    currentInfo.textContent = `Playing: ${song.title}`;
+
+    if (state.instanceAudio.getAttribute('data-id') !== song.id) {
+      state.instanceAudio.src = song.file;
+      state.instanceAudio.setAttribute('data-id', song.id);
+    }
+
+    if (musicState.isPlaying) {
+      const offset = (Date.now() - musicState.startTime) / 1000;
+      if (Math.abs(state.instanceAudio.currentTime - offset) > 2) {
+        state.instanceAudio.currentTime = offset;
+      }
+      state.instanceAudio.play().catch(() => {
+        currentInfo.textContent = 'Click Play to sync music';
+        btnResume.style.display = 'inline-block';
+        btnPause.style.display = 'none';
+      });
+      btnPause.style.display = 'inline-block';
+      btnResume.style.display = 'none';
+    } else {
+      state.instanceAudio.pause();
+      if (musicState.pauseTime) {
+        state.instanceAudio.currentTime = musicState.pauseTime / 1000;
+      }
+      btnPause.style.display = 'none';
+      btnResume.style.display = 'inline-block';
+    }
+
+    // Update list active state
+    document.querySelectorAll('.song-item').forEach(item => {
+      item.classList.toggle('active', item.getAttribute('data-id') === song.id);
+    });
+  }
+
+  // Populate song list
+  state.socket.emit('music:get-list', (res) => {
+    state.availableSongs = res.songs;
+    musicList.innerHTML = res.songs.map(song => `
+      <div class="song-item" data-id="${song.id}">
+        <span>${song.title}</span>
+        <button class="btn btn-primary btn-sm">Play</button>
+      </div>
+    `).join('');
+
+    musicList.querySelectorAll('.song-item').forEach(item => {
+      item.querySelector('button').addEventListener('click', (e) => {
+        e.stopPropagation();
+        state.socket.emit('music:control', { command: 'play', songId: item.getAttribute('data-id') });
+      });
+    });
+  });
+
+  // Request initial music state
+  state.socket.emit('music:request-sync');
 }
 
 // ── Init ─────────────────────────────────────────

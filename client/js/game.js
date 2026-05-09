@@ -54,6 +54,7 @@ const MAPS = {
       { game: 'tongits',    tiles: [{x: 16, y: 13}, {x: 18, y: 13}, {x: 17, y: 16}], color: 0xfdcb6e },
       { game: 'uno',        tiles: [{x: 16, y: 6}, {x: 16, y: 7}, {x: 17, y: 4}, {x: 19, y: 4}, {x: 20, y: 6}], color: 0xd63031 },
       { game: 'poker',      tiles: [{x: 5, y: 5}, {x: 5, y: 6}, {x: 3, y: 8}, {x: 1, y: 5}, {x: 1, y: 6}], color: 0x0984e3 },
+      { game: 'info_book',  tiles: [{x: 25, y: 4}], color: 0x27ae60 },
     ]
   },
   lounge: { name: 'Balay ni Aldwyn', width: 22, height: 18, color: 0x0a3d2e, floorColor: 0x2d6a4f },
@@ -263,9 +264,13 @@ class GameScene extends Phaser.Scene {
 
     this.triggerPrompt.setInteractive({ useHandCursor: true });
     this.triggerPrompt.on('pointerdown', () => {
-      if (this.nearbyTrigger && !this.triggerPrompt.text.includes('Queued')) {
-        this.config.socket.emit('minigame:queue', { gameId: this.nearbyTrigger.game });
-        this.triggerPrompt.setText(`Queued for ${this.nearbyTrigger.game.toUpperCase()} — waiting...`);
+      if (this.nearbyTrigger) {
+        if (this.nearbyTrigger.game === 'info_book') {
+          window.dispatchEvent(new CustomEvent('ui:open-book'));
+        } else if (!this.triggerPrompt.text.includes('Queued')) {
+          this.config.socket.emit('minigame:queue', { gameId: this.nearbyTrigger.game });
+          this.triggerPrompt.setText(`Queued for ${this.nearbyTrigger.game.toUpperCase()} — waiting...`);
+        }
       }
     });
 
@@ -763,14 +768,20 @@ class GameScene extends Phaser.Scene {
         this.triggerPrompt.setPosition(this.myPlayer.x, this.myPlayer.y - 32);
         
         if (!this.triggerPrompt.text.includes('Queued')) {
-          this.triggerPrompt.setText(`Play ${found.game.toUpperCase()} [E]`);
+          if (found.game === 'info_book') {
+            this.triggerPrompt.setText(`Read Welcome Book [E]`);
+          } else {
+            this.triggerPrompt.setText(`Play ${found.game.toUpperCase()} [E]`);
+          }
           if (this.mobileInteractBtn) this.mobileInteractBtn.style.display = 'block';
         }
         
         this.triggerPrompt.setVisible(true);
 
         if (Phaser.Input.Keyboard.JustDown(this.interactKey)) {
-          if (!this.triggerPrompt.text.includes('Queued')) {
+          if (found.game === 'info_book') {
+            window.dispatchEvent(new CustomEvent('ui:open-book'));
+          } else if (!this.triggerPrompt.text.includes('Queued')) {
             this.config.socket.emit('minigame:queue', { gameId: found.game });
             this.triggerPrompt.setText(`Queued for ${found.game.toUpperCase()}...`);
             if (this.mobileInteractBtn) this.mobileInteractBtn.style.display = 'none';

@@ -11,6 +11,8 @@
 
 const MAX_PLAYERS = 5;
 const HOST_GRACE_PERIOD_MS = 10000; // 10 seconds
+const fs = require('fs');
+const path = require('path');
 
 class LobbyManager {
   constructor() {
@@ -22,6 +24,27 @@ class LobbyManager {
     this.hostGraceTimers = new Map();
     /** @type {Set<string>} lobby codes that need syncing */
     this.dirtyLobbies = new Set();
+    
+    // Scan for available instance music
+    this.availableSongs = this._scanMusic();
+  }
+
+  _scanMusic() {
+    const musicDir = path.join(__dirname, '..', 'client', 'assets', 'music');
+    try {
+      if (!fs.existsSync(musicDir)) return [];
+      const files = fs.readdirSync(musicDir);
+      return files
+        .filter(f => f.startsWith('instance-') && f.endsWith('.mp3'))
+        .map(f => ({
+          id: f,
+          title: f.replace('instance-', '').replace('.mp3', '').replace(/-/g, ' '),
+          file: `assets/music/${f}`
+        }));
+    } catch (err) {
+      console.error('[Music] Error scanning music directory:', err);
+      return [];
+    }
   }
 
   /**
@@ -55,7 +78,13 @@ class LobbyManager {
       mapId,
       hostSocketId,
       players: new Map(),
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      music: {
+        currentSong: null,
+        isPlaying: false,
+        startTime: 0,
+        pauseTime: 0
+      }
     };
 
     // Add host as first player

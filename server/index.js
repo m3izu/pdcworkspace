@@ -167,6 +167,54 @@ io.on('connection', (socket) => {
     if (code) minigameManager.handleExit(socket.id, code);
   });
 
+  // ── Music Player ───────────────────────────────────────
+  socket.on('music:get-list', (callback) => {
+    callback({ songs: lobbyManager.availableSongs });
+  });
+
+  socket.on('music:control', ({ command, songId }) => {
+    const code = lobbyManager.getPlayerLobbyCode(socket.id);
+    if (!code) return;
+
+    const lobby = lobbyManager.getLobby(code);
+    if (!lobby) return;
+
+    if (command === 'play') {
+      const song = lobbyManager.availableSongs.find(s => s.id === songId);
+      if (song) {
+        lobby.music.currentSong = song;
+        lobby.music.isPlaying = true;
+        lobby.music.startTime = Date.now();
+        lobby.music.pauseTime = 0;
+      }
+    } else if (command === 'pause') {
+      if (lobby.music.isPlaying) {
+        lobby.music.isPlaying = false;
+        lobby.music.pauseTime = Date.now() - lobby.music.startTime;
+      }
+    } else if (command === 'resume') {
+      if (!lobby.music.isPlaying && lobby.music.currentSong) {
+        lobby.music.isPlaying = true;
+        lobby.music.startTime = Date.now() - lobby.music.pauseTime;
+      }
+    } else if (command === 'stop') {
+      lobby.music.currentSong = null;
+      lobby.music.isPlaying = false;
+      lobby.music.startTime = 0;
+      lobby.music.pauseTime = 0;
+    }
+
+    io.to(code).emit('music:sync', lobby.music);
+  });
+
+  socket.on('music:request-sync', () => {
+    const code = lobbyManager.getPlayerLobbyCode(socket.id);
+    if (code) {
+      const lobby = lobbyManager.getLobby(code);
+      if (lobby) socket.emit('music:sync', lobby.music);
+    }
+  });
+
   // ── Disconnect ─────────────────────────────────────────
   socket.on('disconnect', () => {
     console.log(`[Socket] Disconnected: ${socket.id}`);

@@ -144,7 +144,7 @@
             </div>
             <div class="di-actions">
               <button id="btn-settings" class="di-action-btn" title="Settings">⚙️ Preferences</button>
-              <button id="btn-leave" class="di-action-btn danger" title="Leave lobby">🚪 Leave</button>
+              <button id="btn-leave" class="di-action-btn di-btn-danger" title="Leave lobby">🚪 Leave</button>
             </div>
           </div>
         </div>
@@ -194,6 +194,17 @@
             <input type="checkbox" id="toggle-video-call" checked>
             <span class="toggle-slider"></span>
           </label>
+          <hr style="border:0;border-top:1px solid var(--border);margin:8px 0;">
+          <h4 class="settings-section-title">📻 Instance Music</h4>
+          <div id="instance-music-player">
+            <div id="current-song-info">No music playing</div>
+            <div id="music-song-list"></div>
+            <div class="music-controls">
+              <button id="btn-music-stop" class="btn btn-secondary btn-sm">Stop</button>
+              <button id="btn-music-pause" class="btn btn-secondary btn-sm">Pause</button>
+              <button id="btn-music-resume" class="btn btn-primary btn-sm" style="display:none;">Play</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -210,6 +221,31 @@
         <h3 id="minigame-title" class="minigame-title">Minigame</h3>
         <div id="minigame-content"></div>
         <button id="btn-minigame-exit" class="btn btn-primary minigame-exit-btn">Flee (Exit Game)</button>
+      </div>
+    </div>
+
+    <!-- WELCOME BOOK OVERLAY -->
+    <div id="book-overlay" class="book-overlay" style="display:none;">
+      <div class="book-container">
+        <div class="book-cover">
+          <div class="book-pages">
+            <div class="book-page left-page">
+              <h2 class="book-title">Welcome to SnappyWorld</h2>
+              <p>Your online <strong>tambayan</strong> space where you can chat, hangout, and play with your friends in a vibrant virtual world.</p>
+              <div class="book-divider"></div>
+              <p>Explore the map, join proximity-based video calls, and challenge others to various minigames scattered around.</p>
+            </div>
+            <div class="book-page right-page">
+              <h3>Academic Project</h3>
+              <p>This application is a <strong>PIT Project</strong> for <em>Parallel and Distributed Computing</em>.</p>
+              <div class="book-divider"></div>
+              <p>Thank you for playing and exploring this world! By playing, you are supporting the ongoing development and research of this platform.</p>
+              <div class="book-footer">
+                <button id="btn-close-book" class="btn btn-primary">Close Book</button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
