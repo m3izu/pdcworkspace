@@ -42,6 +42,13 @@ function showScreen(id) {
 
   if (id === 'screen-game') {
     document.body.classList.add('in-game');
+    const bgm = document.getElementById('bgm-theme');
+    const toggleBtn = document.getElementById('btn-music-toggle');
+    if (bgm) {
+      bgm.pause();
+      bgm.remove();
+    }
+    if (toggleBtn) toggleBtn.remove();
   } else {
     document.body.classList.remove('in-game');
   }
@@ -469,6 +476,26 @@ function init() {
   setupCodeInput();
   setupSettingsMenu();
   bindEvents();
+
+  // Set up Title Music
+  const bgm = document.getElementById('bgm-theme');
+  const btnMusicToggle = document.getElementById('btn-music-toggle');
+  if (bgm) {
+    bgm.volume = 0.3;
+    // Browsers block autoplay without user interaction.
+    // So the button acts as a start toggle.
+    if (btnMusicToggle) {
+      btnMusicToggle.addEventListener('click', () => {
+        if (bgm.paused) {
+          bgm.play().catch(e => console.log('Audio play failed:', e));
+          btnMusicToggle.textContent = '🔊 Music On';
+        } else {
+          bgm.pause();
+          btnMusicToggle.textContent = '🔇 Music Off';
+        }
+      });
+    }
+  }
 }
 
 init();

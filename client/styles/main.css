@@ -411,8 +411,35 @@ canvas {
   text-align: center;
   z-index: 3;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
+
+/* ── MUSIC TOGGLE ── */
+.btn-music-toggle {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: rgba(10, 14, 26, 0.6);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  color: var(--text-secondary);
+  font-family: var(--font-retro);
+  font-size: 0.9rem;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  z-index: 1000;
+  backdrop-filter: blur(5px);
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+}
+
+.btn-music-toggle:hover {
+  background: rgba(10, 14, 26, 0.9);
+  color: var(--primary-glow);
+  border-color: var(--primary-glow);
+  transform: translateY(-2px);
+}
+
 .avatar-option:hover {
   border-color: var(--accent);
   transform: translateY(-5px) scale(1.05);
