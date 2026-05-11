@@ -29,9 +29,10 @@ class MinigameManager {
   _getLobbyState(lobbyCode) {
     if (!this.lobbyStates.has(lobbyCode)) {
       this.lobbyStates.set(lobbyCode, {
-        queues: {},          // gameId -> [socketId, ...]
-        readyLobby: null,    // { gameId, players: { socketId: { ready: bool } } }
-        activeGame: null
+        queues: {},            // gameId -> [socketId, ...]
+        readyLobbies: {},      // gameId -> { gameId, players: { socketId: { ready: bool } } }
+        activeGames: new Map(), // instanceId -> { id, players, gameState, roles }
+        playerGameMap: new Map() // socketId -> instanceId
       });
     }
     return this.lobbyStates.get(lobbyCode);
@@ -49,18 +50,22 @@ class MinigameManager {
       state.queues[gameId] = state.queues[gameId].filter(id => id !== socketId);
     }
 
-    // Remove from ready lobby
-    if (state.readyLobby && state.readyLobby.players[socketId]) {
-      delete state.readyLobby.players[socketId];
-      if (Object.keys(state.readyLobby.players).length === 0) {
-        state.readyLobby = null;
-      } else {
-        this._broadcastReadyLobby(lobbyCode, state);
+    // Remove from ready lobbies
+    for (const gameId of Object.keys(state.readyLobbies)) {
+      const readyLobby = state.readyLobbies[gameId];
+      if (readyLobby && readyLobby.players[socketId]) {
+        delete readyLobby.players[socketId];
+        if (Object.keys(readyLobby.players).length === 0) {
+          delete state.readyLobbies[gameId];
+        } else {
+          this._broadcastReadyLobby(lobbyCode, state, gameId);
+        }
       }
     }
 
     // End active game if they are in it
-    if (state.activeGame && state.activeGame.players.includes(socketId)) {
+    const instanceId = state.playerGameMap.get(socketId);
+    if (instanceId) {
       this.handleExit(socketId, lobbyCode);
     }
   }
@@ -69,15 +74,18 @@ class MinigameManager {
 
   handleQueue(socketId, lobbyCode, gameId) {
     const state = this._getLobbyState(lobbyCode);
-    if (state.activeGame) return;
+    
+    // Check if player is already in a game
+    if (state.playerGameMap.has(socketId)) {
+      this.io.to(socketId).emit('minigame:error', { message: 'You are already in a game!' });
+      return;
+    }
 
     const game = this.games[gameId];
     if (!game) return;
 
     // Remove from other queues/lobbies
-    for (const gid of Object.keys(state.queues)) {
-      state.queues[gid] = state.queues[gid].filter(id => id !== socketId);
-    }
+    this.handleDequeue(socketId, lobbyCode);
 
     // If this game uses flexible start (ready-up lobby)
     if (game.flexibleStart) {
@@ -107,14 +115,17 @@ class MinigameManager {
       state.queues[gameId] = state.queues[gameId].filter(id => id !== socketId);
     }
 
-    // Leave ready lobby
-    if (state.readyLobby && state.readyLobby.players[socketId]) {
-      delete state.readyLobby.players[socketId];
-      console.log(`[Minigame] ${socketId} left ready lobby in ${lobbyCode}`);
-      if (Object.keys(state.readyLobby.players).length === 0) {
-        state.readyLobby = null;
-      } else {
-        this._broadcastReadyLobby(lobbyCode, state);
+    // Leave ready lobbies
+    for (const gameId of Object.keys(state.readyLobbies)) {
+      const readyLobby = state.readyLobbies[gameId];
+      if (readyLobby && readyLobby.players[socketId]) {
+        delete readyLobby.players[socketId];
+        console.log(`[Minigame] ${socketId} left ready lobby ${gameId} in ${lobbyCode}`);
+        if (Object.keys(readyLobby.players).length === 0) {
+          delete state.readyLobbies[gameId];
+        } else {
+          this._broadcastReadyLobby(lobbyCode, state, gameId);
+        }
       }
     }
 
@@ -124,61 +135,73 @@ class MinigameManager {
   // ── Ready-up lobby for flexible player count games ──
 
   _joinReadyLobby(socketId, lobbyCode, gameId, state) {
-    // Create lobby if needed, or join existing one for same game
-    if (!state.readyLobby || state.readyLobby.gameId !== gameId) {
-      state.readyLobby = { gameId, players: {} };
+    // Create lobby if needed for this gameId
+    if (!state.readyLobbies[gameId]) {
+      state.readyLobbies[gameId] = { gameId, players: {} };
     }
 
+    const readyLobby = state.readyLobbies[gameId];
     const game = this.games[gameId];
     const maxPlayers = game.maxPlayers || 5;
-    if (Object.keys(state.readyLobby.players).length >= maxPlayers) {
-      this.io.to(socketId).emit('minigame:waiting-cancelled');
+    
+    if (Object.keys(readyLobby.players).length >= maxPlayers) {
+      this.io.to(socketId).emit('minigame:error', { message: 'This lobby is full!' });
       return;
     }
 
-    state.readyLobby.players[socketId] = { ready: false };
-    console.log(`[Minigame] ${socketId} joined ready lobby for ${gameId} (${Object.keys(state.readyLobby.players).length} players)`);
+    readyLobby.players[socketId] = { ready: false };
+    console.log(`[Minigame] ${socketId} joined ready lobby for ${gameId} (${Object.keys(readyLobby.players).length} players)`);
 
-    this._broadcastReadyLobby(lobbyCode, state);
+    this._broadcastReadyLobby(lobbyCode, state, gameId);
   }
 
   handleReady(socketId, lobbyCode, ready) {
     const state = this._getLobbyState(lobbyCode);
-    if (!state.readyLobby || !state.readyLobby.players[socketId]) return;
+    
+    // Find which ready lobby the player is in
+    let gameId = null;
+    for (const gid of Object.keys(state.readyLobbies)) {
+      if (state.readyLobbies[gid].players[socketId]) {
+        gameId = gid;
+        break;
+      }
+    }
+    if (!gameId) return;
 
-    state.readyLobby.players[socketId].ready = !!ready;
-    console.log(`[Minigame] ${socketId} ready=${ready} in lobby ${lobbyCode}`);
+    const readyLobby = state.readyLobbies[gameId];
+    readyLobby.players[socketId].ready = !!ready;
+    console.log(`[Minigame] ${socketId} ready=${ready} in lobby ${lobbyCode} for ${gameId}`);
 
-    this._broadcastReadyLobby(lobbyCode, state);
+    this._broadcastReadyLobby(lobbyCode, state, gameId);
 
     // Check if all ready and minimum met
-    const game = this.games[state.readyLobby.gameId];
-    const players = state.readyLobby.players;
+    const game = this.games[gameId];
+    const players = readyLobby.players;
     const ids = Object.keys(players);
     const minPlayers = game.minPlayers || 2;
     const allReady = ids.every(id => players[id].ready);
 
     if (allReady && ids.length >= minPlayers) {
-      const gameId = state.readyLobby.gameId;
-      state.readyLobby = null;
+      delete state.readyLobbies[gameId];
       this._startGame(lobbyCode, state, gameId, ids);
     }
   }
 
-  _broadcastReadyLobby(lobbyCode, state) {
-    if (!state.readyLobby) return;
-    const game = this.games[state.readyLobby.gameId];
+  _broadcastReadyLobby(lobbyCode, state, gameId) {
+    const readyLobby = state.readyLobbies[gameId];
+    if (!readyLobby) return;
+    const game = this.games[gameId];
     const lobbyInfo = {
-      gameId: state.readyLobby.gameId,
+      gameId: gameId,
       gameName: game.name,
       minPlayers: game.minPlayers || 2,
       maxPlayers: game.maxPlayers || 5,
-      players: Object.entries(state.readyLobby.players).map(([id, p]) => ({
+      players: Object.entries(readyLobby.players).map(([id, p]) => ({
         id,
         ready: p.ready,
       })),
     };
-    for (const pid of Object.keys(state.readyLobby.players)) {
+    for (const pid of Object.keys(readyLobby.players)) {
       this.io.to(pid).emit('minigame:ready-lobby', lobbyInfo);
     }
   }
@@ -207,32 +230,35 @@ class MinigameManager {
       roles = game.roles || ['X', 'O'];
     }
 
-    state.activeGame = {
+    const instanceId = `${gameId}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const activeGame = {
       id: gameId,
+      instanceId,
       players: playerIds,
       gameState,
       roles: {}
     };
 
     for (let i = 0; i < playerIds.length; i++) {
-      state.activeGame.roles[playerIds[i]] = roles[i];
+      const pid = playerIds[i];
+      activeGame.roles[pid] = roles[i];
+      state.playerGameMap.set(pid, instanceId);
     }
 
-    // Clear all queues & ready lobby
-    state.queues = {};
-    state.readyLobby = null;
+    state.activeGames.set(instanceId, activeGame);
 
     // Notify players (sanitize state per-player for card games)
     for (const pid of playerIds) {
-      const role = state.activeGame.roles[pid];
+      const role = activeGame.roles[pid];
       this.io.to(pid).emit('minigame:start', {
         gameId,
+        instanceId,
         role,
-        state: this._sanitizeState(gameId, state.activeGame.gameState, role)
+        state: this._sanitizeState(gameId, activeGame.gameState, role)
       });
     }
 
-    console.log(`[Minigame] Started ${gameId} in lobby ${lobbyCode} with ${playerIds.length} players`);
+    console.log(`[Minigame] Started ${gameId} (${instanceId}) in lobby ${lobbyCode} with ${playerIds.length} players`);
   }
 
   // Sanitize state so each player only sees their own hand
@@ -259,50 +285,59 @@ class MinigameManager {
 
   handleMove(socketId, lobbyCode, data) {
     const state = this._getLobbyState(lobbyCode);
-    if (!state.activeGame || !state.activeGame.players.includes(socketId)) return;
+    const instanceId = state.playerGameMap.get(socketId);
+    if (!instanceId) return;
 
-    const game = this.games[state.activeGame.id];
-    const role = state.activeGame.roles[socketId];
+    const activeGame = state.activeGames.get(instanceId);
+    if (!activeGame || !activeGame.players.includes(socketId)) return;
 
-    const result = game.handleMove(state.activeGame.gameState, role, data);
-    state.activeGame.gameState = result.state;
+    const game = this.games[activeGame.id];
+    const role = activeGame.roles[socketId];
 
-    const endCheck = game.checkEnd(state.activeGame.gameState);
+    const result = game.handleMove(activeGame.gameState, role, data);
+    activeGame.gameState = result.state;
+
+    const endCheck = game.checkEnd(activeGame.gameState);
 
     // Broadcast update to each player with sanitized state
-    for (const pid of state.activeGame.players) {
-      const r = state.activeGame.roles[pid];
+    for (const pid of activeGame.players) {
+      const r = activeGame.roles[pid];
       this.io.to(pid).emit('minigame:update',
-        this._sanitizeState(state.activeGame.id, state.activeGame.gameState, r)
+        this._sanitizeState(activeGame.id, activeGame.gameState, r)
       );
     }
 
     if (endCheck.ended) {
       setTimeout(() => {
-        this._endGame(lobbyCode, state, endCheck.winner, false);
+        this._endGame(lobbyCode, state, instanceId, endCheck.winner, false);
       }, 2000);
     }
   }
 
   handleExit(socketId, lobbyCode) {
     const state = this._getLobbyState(lobbyCode);
-    if (!state.activeGame || !state.activeGame.players.includes(socketId)) return;
+    const instanceId = state.playerGameMap.get(socketId);
+    if (!instanceId) return;
 
-    const game = this.games[state.activeGame.id];
-    const role = state.activeGame.roles[socketId];
+    const activeGame = state.activeGames.get(instanceId);
+    if (!activeGame || !activeGame.players.includes(socketId)) return;
+
+    const game = this.games[activeGame.id];
+    const role = activeGame.roles[socketId];
 
     // If the game supports mid-game leave (e.g. poker), fold the player out
-    if (game.handlePlayerLeave && state.activeGame.players.length > 2) {
-      game.handlePlayerLeave(state.activeGame.gameState, role);
+    if (game.handlePlayerLeave && activeGame.players.length > 2) {
+      game.handlePlayerLeave(activeGame.gameState, role);
 
       // Remove from active player list
-      state.activeGame.players = state.activeGame.players.filter(p => p !== socketId);
+      activeGame.players = activeGame.players.filter(p => p !== socketId);
+      state.playerGameMap.delete(socketId);
 
       // Broadcast updated state to remaining players
-      for (const pid of state.activeGame.players) {
-        const r = state.activeGame.roles[pid];
+      for (const pid of activeGame.players) {
+        const r = activeGame.roles[pid];
         this.io.to(pid).emit('minigame:update',
-          this._sanitizeState(state.activeGame.id, state.activeGame.gameState, r)
+          this._sanitizeState(activeGame.id, activeGame.gameState, r)
         );
       }
 
@@ -310,30 +345,32 @@ class MinigameManager {
       this.io.to(socketId).emit('minigame:end', { winner: null, disconnected: false });
 
       // Check if the game ended after the leave
-      const endCheck = game.checkEnd(state.activeGame.gameState);
+      const endCheck = game.checkEnd(activeGame.gameState);
       if (endCheck.ended) {
         setTimeout(() => {
-          this._endGame(lobbyCode, state, endCheck.winner, false);
+          this._endGame(lobbyCode, state, instanceId, endCheck.winner, false);
         }, 2000);
       }
 
-      console.log(`[Minigame] ${socketId} (${role}) left poker in lobby ${lobbyCode}`);
+      console.log(`[Minigame] ${socketId} (${role}) left ${activeGame.id} in lobby ${lobbyCode}`);
       return;
     }
 
     // Default behavior: end the game for everyone
-    this._endGame(lobbyCode, state, null, true);
+    this._endGame(lobbyCode, state, instanceId, null, true);
   }
 
-  _endGame(lobbyCode, state, winner, disconnected) {
-    if (!state.activeGame) return;
+  _endGame(lobbyCode, state, instanceId, winner, disconnected) {
+    const activeGame = state.activeGames.get(instanceId);
+    if (!activeGame) return;
 
-    for (const pid of state.activeGame.players) {
+    for (const pid of activeGame.players) {
       this.io.to(pid).emit('minigame:end', { winner, disconnected });
+      state.playerGameMap.delete(pid);
     }
 
-    console.log(`[Minigame] Ended ${state.activeGame.id} in lobby ${lobbyCode}`);
-    state.activeGame = null;
+    console.log(`[Minigame] Ended ${activeGame.id} (${instanceId}) in lobby ${lobbyCode}`);
+    state.activeGames.delete(instanceId);
   }
 }
 
