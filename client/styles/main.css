@@ -603,7 +603,7 @@ canvas {
 /* ── BROADCAST STATUS INDICATOR ── */
 .broadcast-status {
   position: absolute;
-  top: 16px;
+  top: 80px;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(10, 14, 26, 0.8);
@@ -613,7 +613,7 @@ canvas {
   display: flex;
   align-items: center;
   gap: 8px;
-  z-index: 1000;
+  z-index: 10000;
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 15px rgba(239, 68, 68, 0.2);
   color: #fff;
@@ -2090,6 +2090,7 @@ canvas {
 @media (max-width: 768px) {
   .btn-settings { top: 8px; right: 8px; width: 36px; height: 36px; font-size: 1rem; }
   .video-panel { right: 55px; top: 8px; }
+  .broadcast-status { top: 16px; }
 }
 
 /* ═══════════════════════════════════════════════════

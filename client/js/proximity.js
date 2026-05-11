@@ -230,9 +230,13 @@ export class ProximityManager {
       }
     }
 
-    if (activeCount > 0) {
+    if (this.localStream) {
       statusEl.style.display = 'flex';
-      textEl.textContent = `Live (${activeCount} nearby)`;
+      if (activeCount > 0) {
+        textEl.textContent = `Live (${activeCount} nearby)`;
+      } else {
+        textEl.textContent = 'Live (Broadcasting)';
+      }
     } else {
       statusEl.style.display = 'none';
     }
@@ -271,6 +275,7 @@ export class ProximityManager {
     tile.appendChild(video);
     tile.appendChild(label);
     this.videoPanel.appendChild(tile);
+    this.videoPanel.style.display = 'flex'; // Ensure panel is visible when adding a tile
 
     return video;
   }
