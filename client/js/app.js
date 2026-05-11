@@ -473,10 +473,9 @@ function bindEvents() {
   // Welcome Book
   window.addEventListener('ui:open-book', () => {
     document.getElementById('book-overlay').style.display = 'flex';
-    const spread1 = document.getElementById('spread-1');
-    const spread2 = document.getElementById('spread-2');
-    if (spread1) spread1.style.display = 'flex';
-    if (spread2) spread2.style.display = 'none';
+    document.getElementById('spread-1').style.display = 'flex';
+    document.getElementById('spread-2').style.display = 'none';
+    document.getElementById('spread-3').style.display = 'none';
     if (window.__gameScene) window.__gameScene.isMinigameActive = true;
   });
 
@@ -485,22 +484,21 @@ function bindEvents() {
     if (window.__gameScene) window.__gameScene.isMinigameActive = false;
   });
 
-  const btnNextPage = document.getElementById('btn-next-page');
-  const btnPrevPage = document.getElementById('btn-prev-page');
-  
-  if (btnNextPage) {
-    btnNextPage.addEventListener('click', () => {
-      document.getElementById('spread-1').style.display = 'none';
-      document.getElementById('spread-2').style.display = 'flex';
-    });
-  }
-  
-  if (btnPrevPage) {
-    btnPrevPage.addEventListener('click', () => {
-      document.getElementById('spread-2').style.display = 'none';
-      document.getElementById('spread-1').style.display = 'flex';
-    });
-  }
+  // Page Navigation
+  const bindPage = (btnId, fromId, toId) => {
+    const btn = document.getElementById(btnId);
+    if (btn) {
+      btn.addEventListener('click', () => {
+        document.getElementById(fromId).style.display = 'none';
+        document.getElementById(toId).style.display = 'flex';
+      });
+    }
+  };
+
+  bindPage('btn-next-page', 'spread-1', 'spread-2');
+  bindPage('btn-prev-page-2', 'spread-2', 'spread-1');
+  bindPage('btn-next-page-2', 'spread-2', 'spread-3');
+  bindPage('btn-prev-page-3', 'spread-3', 'spread-2');
 
   // Instance Music
   const musicList = document.getElementById('music-song-list');
