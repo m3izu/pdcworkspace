@@ -54,6 +54,7 @@ const MAPS = {
       { game: 'tongits',    tiles: [{x: 16, y: 13}, {x: 18, y: 13}, {x: 17, y: 16}], color: 0xfdcb6e },
       { game: 'uno',        tiles: [{x: 16, y: 6}, {x: 16, y: 7}, {x: 17, y: 4}, {x: 19, y: 4}, {x: 20, y: 6}], color: 0xd63031 },
       { game: 'poker',      tiles: [{x: 5, y: 5}, {x: 5, y: 6}, {x: 3, y: 8}, {x: 1, y: 5}, {x: 1, y: 6}], color: 0x0984e3 },
+      { game: 'connect4',   tiles: [{x: 5, y: 16}, {x: 8, y: 16}], color: 0xf1c40f },
       { game: 'info_book',  tiles: [{x: 25, y: 4}], color: 0x27ae60 },
     ]
   },

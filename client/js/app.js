@@ -473,6 +473,10 @@ function bindEvents() {
   // Welcome Book
   window.addEventListener('ui:open-book', () => {
     document.getElementById('book-overlay').style.display = 'flex';
+    const spread1 = document.getElementById('spread-1');
+    const spread2 = document.getElementById('spread-2');
+    if (spread1) spread1.style.display = 'flex';
+    if (spread2) spread2.style.display = 'none';
     if (window.__gameScene) window.__gameScene.isMinigameActive = true;
   });
 
@@ -480,6 +484,23 @@ function bindEvents() {
     document.getElementById('book-overlay').style.display = 'none';
     if (window.__gameScene) window.__gameScene.isMinigameActive = false;
   });
+
+  const btnNextPage = document.getElementById('btn-next-page');
+  const btnPrevPage = document.getElementById('btn-prev-page');
+  
+  if (btnNextPage) {
+    btnNextPage.addEventListener('click', () => {
+      document.getElementById('spread-1').style.display = 'none';
+      document.getElementById('spread-2').style.display = 'flex';
+    });
+  }
+  
+  if (btnPrevPage) {
+    btnPrevPage.addEventListener('click', () => {
+      document.getElementById('spread-2').style.display = 'none';
+      document.getElementById('spread-1').style.display = 'flex';
+    });
+  }
 
   // Instance Music
   const musicList = document.getElementById('music-song-list');

@@ -4,6 +4,7 @@ import battleship from './battleship.js';
 import tongits    from './tongits.js';
 import uno        from './uno.js';
 import * as poker from './poker.js';
+import connect4   from './connect4.js';
 
 class MinigameRenderer {
   constructor() {
@@ -18,7 +19,8 @@ class MinigameRenderer {
         name: "Texas Hold'em",
         render: poker.createPokerUI,
         update: (container, state, myRole) => { if (container._pokerUpdate) container._pokerUpdate(state); }
-      }
+      },
+      [connect4.id]:   connect4
     };
 
     this.activeGameId = null;

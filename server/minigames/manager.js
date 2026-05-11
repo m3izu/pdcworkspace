@@ -4,6 +4,7 @@ const battleship = require('./battleship');
 const tongits    = require('./tongits');
 const uno        = require('./uno');
 const poker      = require('./poker');
+const connect4   = require('./connect4');
 
 class MinigameManager {
   constructor(io, lobbyManager) {
@@ -18,6 +19,7 @@ class MinigameManager {
       [tongits.id]:    tongits,
       [uno.id]:        uno,
       [poker.id]:      poker,
+      [connect4.id]:   connect4,
     };
 
     // State tracking per lobby

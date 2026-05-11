@@ -228,20 +228,41 @@
     <div id="book-overlay" class="book-overlay" style="display:none;">
       <div class="book-container">
         <div class="book-cover">
-          <div class="book-pages">
-            <div class="book-page left-page">
-              <h2 class="book-title">Welcome to SnappyWorld</h2>
-              <p>Your online <strong>tambayan</strong> space where you can chat, hangout, and play with your friends in a vibrant virtual world.</p>
-              <div class="book-divider"></div>
-              <p>Explore the map, join proximity-based video calls, and challenge others to various minigames scattered around.</p>
+          <div class="book-pages" id="book-pages">
+            <!-- SPREAD 1 -->
+            <div class="book-spread active" id="spread-1">
+              <div class="book-page left-page">
+                <h2 class="book-title">Welcome to SnappyWorld</h2>
+                <p>Your online <strong>tambayan</strong> space where you can chat, hangout, and play with your friends in a vibrant virtual world.</p>
+                <div class="book-divider"></div>
+                <p>Explore the map, join proximity-based video calls, and challenge others to various minigames scattered around.</p>
+              </div>
+              <div class="book-page right-page">
+                <h2 class="book-title">How to Play</h2>
+                <p>Use <strong>W A S D</strong> or Arrow Keys to move your character.</p>
+                <p>Press <strong>E</strong> to interact with objects and minigames.</p>
+                <div class="book-divider"></div>
+                <div class="book-footer">
+                  <button id="btn-next-page" class="btn btn-primary">Next Page ➔</button>
+                </div>
+              </div>
             </div>
-            <div class="book-page right-page">
-              <h3>Academic Project</h3>
-              <p>This application is a <strong>PIT Project</strong> for <em>Parallel and Distributed Computing</em>.</p>
-              <div class="book-divider"></div>
-              <p>Thank you for playing and exploring this world! By playing, you are supporting the ongoing development and research of this platform.</p>
-              <div class="book-footer">
-                <button id="btn-close-book" class="btn btn-primary">Close Book</button>
+            <!-- SPREAD 2 -->
+            <div class="book-spread" id="spread-2" style="display:none;">
+              <div class="book-page left-page">
+                <h2 class="book-title">Academic Project</h2>
+                <p>This application is a <strong>PIT Project</strong> for <em>Parallel and Distributed Computing</em>.</p>
+                <div class="book-divider"></div>
+                <p>Thank you for playing and exploring this world! By playing, you are supporting the ongoing development and research of this platform.</p>
+              </div>
+              <div class="book-page right-page">
+                <h2 class="book-title">Credits</h2>
+                <p>Developed with ❤️ using Phaser, Socket.io, and PeerJS.</p>
+                <div class="book-divider"></div>
+                <div class="book-footer">
+                  <button id="btn-prev-page" class="btn btn-secondary">⬅ Prev Page</button>
+                  <button id="btn-close-book" class="btn btn-primary">Close Book</button>
+                </div>
               </div>
             </div>
           </div>
