@@ -1786,9 +1786,30 @@ canvas {
 }
 
 @media (max-width: 600px) {
-  .book-spread { flex-direction: column; min-height: auto; }
+  .book-overlay {
+    padding: 10px;
+    align-items: flex-start; /* Allow scrolling from top */
+    overflow-y: auto;
+  }
+  .book-container {
+    width: 95%;
+    margin: 20px auto;
+  }
+  .book-spread { 
+    flex-direction: column; 
+    min-height: auto; 
+  }
+  .book-pages {
+    min-height: auto;
+  }
+  .book-page {
+    padding: 20px;
+    font-size: 1.2rem;
+  }
   .left-page { border-right: none; border-bottom: 2px solid #d7c49e; }
   .right-page { border-left: none; box-shadow: none; }
+  .book-title { font-size: 0.9rem; margin-bottom: 15px; }
+  .book-footer { margin-top: 20px; }
 }
 
 

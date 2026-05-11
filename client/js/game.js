@@ -398,9 +398,13 @@ class GameScene extends Phaser.Scene {
         this.mobileInteractBtn.addEventListener('touchstart', (e) => {
           e.preventDefault();
           if (this.nearbyTrigger && !this.triggerPrompt.text.includes('Queued')) {
-            this.config.socket.emit('minigame:queue', { gameId: this.nearbyTrigger.game });
-            this.triggerPrompt.setText(`Queued for ${this.nearbyTrigger.game.toUpperCase()} — waiting...`);
-            this.mobileInteractBtn.style.display = 'none';
+            if (this.nearbyTrigger.game === 'info_book') {
+              window.dispatchEvent(new CustomEvent('ui:open-book'));
+            } else {
+              this.config.socket.emit('minigame:queue', { gameId: this.nearbyTrigger.game });
+              this.triggerPrompt.setText(`Queued for ${this.nearbyTrigger.game.toUpperCase()} — waiting...`);
+              this.mobileInteractBtn.style.display = 'none';
+            }
           }
         }, { passive: false });
       }
