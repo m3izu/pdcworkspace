@@ -1,69 +1,185 @@
+# ![SnappyWorld Banner](C:\Users\rfsga\.gemini\antigravity\brain\32e24057-9081-42ac-ab8f-bfd07ca51419\snappyworld_banner_1778677280668.png)
+
 # SnappyWorld: A Parallel & Distributed Virtual Space
 
-Welcome to **SnappyWorld**, a cutting-edge virtual gathering platform designed for seamless interaction, real-time collaboration, and immersive proximity-based communication.
+Welcome to **SnappyWorld**, a high-performance virtual gathering platform designed for seamless interaction, real-time collaboration, and immersive proximity-based communication. 
 
-## 🌟 Introduction
-SnappyWorld is a **virtual "tambayan"** or social hangout space where users inhabit a 2D world as customizable avatars. Unlike traditional video conferencing, SnappyWorld mimics real-world physics: your video and audio grow louder or appear as you move closer to others, fostering organic, spontaneous conversations just like hanging out in person.
-
----
-
-## 💻 Parallel & Distributed Concepts
-SnappyWorld is a prime example of a **Distributed System** leveraging modern networking protocols to handle high-concurrency and low-latency interactions.
-
-### 1. Hybrid Client-Server & P2P Architecture
-SnappyWorld utilizes a sophisticated hybrid model to optimize performance and reliability.
-- **Server-Assisted Signaling**: Using a Node.js server (hosted on Railway), the system manages lobby states and handles "Signaling"—the process of helping peers discover and connect to each other.
-- **WebRTC Data Streaming**: Once connected, high-bandwidth video and audio data are streamed directly between browsers (Peer-to-Peer). This distributed approach reduces server load and latency, ensuring a smooth experience even as more players join a lobby.
-
-### 2. Real-Time State Synchronization (Socket.io)
-The world state (player positions, animations, and minigame states) is managed through a **Centralized Coordinator** (the Node.js server).
-- **Event-Driven Architecture**: The server processes thousands of position updates in parallel, broadcasting "deltas" (changes) to all connected clients to maintain a "Single Source of Truth."
-- **Concurrency**: The server handles multiple independent "Lobbies" in parallel, ensuring that state changes in one room do not interfere with others.
-
-### 3. Proximity Logic (Spatial Partitioning)
-The "Proximity Chat" feature is a distributed computation. Each client calculates its distance to other peers locally to determine volume and visibility, reducing the computational load on the central server.
+Built as a modern "tambayan" (social hangout), SnappyWorld leverages cutting-edge distributed networking to mimic real-world physics: your video and audio presence dynamically adjust based on your spatial proximity to others, fostering organic and spontaneous digital connections.
 
 ---
 
-## 🧠 Design Rationale
-- **Engagement over Fatigue**: Traditional video calls are draining. SnappyWorld uses spatial context to make interactions feel more natural and less like a "meeting."
-- **Low Barrier to Entry**: No installation required. Everything runs in the browser using high-performance WebGL (Phaser 3).
-- **Gamified Socializing**: By integrating minigames (Poker, Uno, Tic-Tac-Toe) directly into the world, the platform serves as both a social hub and a digital tambayan.
+## 🚀 How It Works: Under the Hood
+
+SnappyWorld is a sophisticated **Distributed System** designed to handle high-concurrency interactions with minimal latency.
+
+### 1. Hybrid Networking Architecture
+We utilize a multi-layered networking model to optimize for both reliability and performance:
+- **Signaling Layer (Socket.io)**: A Node.js coordinator handles lobby management, player state, and "signaling"—the process where peers discover each other and negotiate connections.
+- **Media Streaming Layer (PeerJS/WebRTC)**: High-bandwidth video and audio data are streamed Peer-to-Peer (P2P). This distributed approach offloads heavy media processing from the server to the client's edge, ensuring scalability.
+
+### 2. High-Frequency State Synchronization
+The world state (player positions, animations, and directions) is managed via an **Event-Driven Architecture**:
+- **20Hz Broadcast Loop**: The server maintains a 50ms heartbeat loop. It tracks "dirty" lobbies (those with active movement) and broadcasts position deltas to all connected clients in parallel.
+- **Serialization**: Data is serialized into compact arrays (e.g., `[id, x, y, dir, frame]`) to minimize packet size and prevent network congestion.
+
+### 3. Spatial Partitioning & Proximity Logic
+The "Proximity Chat" feature is a **Distributed Computation**:
+- Each client calculates its distance to other avatars locally.
+- Volume levels and video opacity are mapped to a 3D distance vector, meaning the server never has to process expensive spatial audio math for hundreds of users.
 
 ---
 
-## 🏗️ Architecture & Design
+## 🏗️ Codebase Structure
 
-### High-Level Architecture
-- **Frontend**: Phaser 3 (Game Engine), Socket.io-client, PeerJS.
-- **Backend**: Node.js, Express, Socket.io (Signaling & State), PeerJS Server.
-- **Deployment**: Configured for **Railway** using Nixpacks for automated builds and high-availability hosting.
+The project is organized into a clean, modular structure:
 
-### System Overview
-1. **Signaling Layer**: Handles the initial "handshake" between players to establish P2P connections.
-2. **Game Layer**: A 2D engine that renders maps, handles physics/collisions, and manages the UI.
-3. **Minigame Engine**: A modular system allowing for plug-and-play card games and board games that sync across the network.
-
----
-
-## 🚀 Major Features
-- **Proximity Video/Audio**: Talk to people simply by walking up to them.
-- **Lobby System**: Create private, 4-digit coded rooms with custom map selections.
-- **Interactive Minigames (Expanding Ecosystem)**: 
-    - **Poker & Tongits**: High-stakes card games with synchronized logic.
-    - **UNO**: Casual multiplayer fun.
-    - **Board Games**: Tic-Tac-Toe, Checkers, and Battleship.
-    - *Note: More games are currently in development as part of the SnappyWorld roadmap.*
-- **Custom Avatars**: High-fidelity character selection with animated previews.
-- **Dynamic Island HUD**: A modern, non-intrusive UI for managing lobby details and preferences.
-- **Mobile Optimized**: Custom joystick controls and responsive layouts for gaming on the go.
+```text
+├── client/                 # Frontend Assets & Logic
+│   ├── assets/             # Sprites, Maps (JSON), and Audio
+│   ├── js/                 # Phaser 3 Game Engine & UI Logic
+│   └── styles/             # Modern Vanilla CSS (Glassmorphism)
+├── server/                 # Backend Node.js Environment
+│   ├── minigames/          # Modular Minigame Logic (Server-side)
+│   ├── index.js            # Main Entry Point & Socket Handling
+│   └── lobbyManager.js     # Lobby Lifecycle & Sync Logic
+├── stress-test.yml         # Artillery Configuration for Load Testing
+├── package.json            # Dependencies & Scripts
+└── railway.json            # Deployment Configuration
+```
 
 ---
 
-## 🛠️ Developer Info
-- **Project Name**: SnappyWorld
-- **Repository**: [m3izu/pdcworkspace](https://github.com/m3izu/pdcworkspace)
-- **Built With**: JavaScript (ES6+), Node.js, HTML5 Canvas, WebRTC.
+## 🎮 The Minigame Ecosystem
+
+SnappyWorld features a robust, modular minigame engine that allows for synchronized multiplayer sessions within any lobby.
+
+| Game | Type | Players | Key Features |
+| :--- | :--- | :--- | :--- |
+| **Poker** | Cards | 2–5 | Texas Hold'em, auto-blinds, split-pots, showdown logic. |
+| **Tongits** | Cards | 2–4 | Localized card game with complex melding and draw/discard logic. |
+| **UNO** | Cards | 2–5 | Action cards (Skip, Reverse, +4), wild color selection, UNO calls. |
+| **Battleship** | Strategy| 2 | Secret placement phase, grid-based firing, ship sinking logic. |
+| **Checkers** | Board | 2 | Mandatory jumps, king promotion, multi-jump chains. |
+| **Connect 4** | Casual | 2 | Gravity-based physics, 4-in-a-row detection. |
+| **Tic-Tac-Toe**| Casual | 2 | Classic quick-play board game. |
+
+> [!TIP]
+> **State Sanitization**: For card games like Poker and UNO, the server implements state sanitization. Opponent "hole cards" are removed from the data packet before being sent to the client, preventing cheating via browser console inspection.
 
 ---
-*Created as part of the Parallel and Distributed Computing (PDC) project.*
+
+## ⚡ Stress Testing & Performance
+
+We use **Artillery** to validate the system's ability to handle massive concurrent loads.
+
+### Load Test Scenario
+Our `stress-test.yml` simulates real user behavior:
+1.  **Lobby Creation**: Users generate a unique 4-digit code.
+2.  **Continuous Movement**: Users simulate walking around for 10 seconds, hitting the 20Hz sync loop.
+3.  **Concurrency Phases**: 
+    - **Warm up**: 5 users/sec.
+    - **Ramp up**: Gradually scales to 50 users/sec.
+    - **Sustained**: Maintains 50 concurrent arrivals.
+
+### Running the Test
+To execute a local stress test, ensure the server is running and execute:
+```bash
+npx artillery run stress-test.yml
+```
+
+---
+
+## 🛰️ Connection Lifecycle & Signaling
+
+The following diagram illustrates how a distributed P2P connection is established through our signaling server:
+
+```mermaid
+sequenceDiagram
+    participant P1 as Player A (Host)
+    participant S as Signaling Server (Node.js)
+    participant P2 as Player B (Peer)
+
+    P1->>S: create-lobby(name, avatar, map)
+    S-->>P1: lobby-created (Code: 1234)
+    P2->>S: join-lobby(Code: 1234)
+    S-->>P1: player-joined (Player B Info)
+    S-->>P2: join-success (Lobby State)
+    
+    Note over P1,P2: Signaling Handshake
+    P1->>S: register-peer (PeerID_A)
+    S->>P2: peer-registered (PeerID_A)
+    P2->>P1: WebRTC Direct Connection (P2P)
+    Note right of P2: Proximity Video/Audio Active
+```
+
+---
+
+## 📡 Distributed Event Reference (Socket.io)
+
+### Client to Server
+| Event | Payload | Description |
+| :--- | :--- | :--- |
+| `create-lobby` | `{playerName, avatarId, mapId}` | Initializes a new lobby instance. |
+| `join-lobby` | `{code, playerName, avatarId}` | Attempts to join an existing 4-digit lobby. |
+| `player:move` | `{x, y, direction, frame}` | Sends position updates (processed at 20Hz). |
+| `register-peer`| `{peerId}` | Registers the WebRTC ID for P2P signaling. |
+| `chat:message` | `{text}` | Broadcasts a message to the lobby room. |
+| `music:control`| `{command, songId}` | Controls the shared lobby music player. |
+
+### Server to Client
+| Event | Payload | Description |
+| :--- | :--- | :--- |
+| `lobby:sync` | `[[id, x, y, dir, frame], ...]`| Batch update of all player positions. |
+| `player-joined`| `{player, lobby}` | Notifies clients of a new participant. |
+| `peer-registered`| `{socketId, peerId}` | Triggers a P2P connection attempt. |
+| `music:sync` | `{currentSong, isPlaying, ...}`| Synchronizes audio playback state. |
+| `host-left` | `{message}` | Notifies that the lobby is closing. |
+
+---
+
+## 🛠️ Modular Minigame Development
+
+Adding a new minigame is as simple as creating a new logic file in `server/minigames/`.
+
+### Minigame Interface
+Each game must export an object with the following structure:
+```javascript
+module.exports = {
+  id: 'mygame',
+  name: 'My New Game',
+  minPlayers: 2,
+  maxPlayers: 4,
+  flexibleStart: true, // Uses the 'Ready' lobby system
+  
+  createState: (playerCount) => ({ /* Initial state */ }),
+  handleMove: (state, role, data) => ({ state, events: [] }),
+  checkEnd: (state) => ({ ended: boolean, winner: string }),
+  getSanitizedState: (state, role) => ({ /* Filtered state */ })
+};
+```
+
+---
+
+## 🌐 Deployment & Environment
+
+### Railway Configuration
+The project is optimized for **Railway** deployment using the following parameters:
+- **Build Command**: `vite build client`
+- **Start Command**: `node server/index.js`
+- **Environment**: Nixpacks with Node.js 18.
+
+### Environment Variables
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `PORT` | The port the server listens on | `3000` |
+| `NODE_ENV`| Set to `production` for optimized networking | `development` |
+
+---
+
+## 🤝 Contribution & Credits
+- **Lead Developer**: Ronald Franco Galendez
+- **Tech Stack**: Phaser 3, Socket.io, PeerJS, Express.
+- **Project Purpose**: Parallel and Distributed Computing (PDC) Laboratory.
+
+---
+*Created as part of the Parallel and Distributed Computing (PDC) project. Focus on performance, scalability, and user engagement.*
