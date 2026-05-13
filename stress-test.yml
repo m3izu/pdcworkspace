@@ -1,0 +1,41 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    - duration: 60
+      arrivalRate: 5
+      name: Warm up phase
+    - duration: 120
+      arrivalRate: 10
+      rampTo: 50
+      name: Ramp up phase
+    - duration: 60
+      arrivalRate: 50
+      name: Sustained load phase
+  engines:
+    socketio-v3: {}
+
+scenarios:
+  - name: "Host a lobby and move"
+    engine: socketio-v3
+    flow:
+      # 1. Create a new lobby
+      - emit:
+          channel: "create-lobby"
+          data:
+            playerName: "Host_{{ $randomString() }}"
+            avatarId: 0
+            mapId: "office"
+        acknowledge: true
+      
+      # 2. Simulate movement
+      - think: 2
+      - loop:
+          - emit:
+              channel: "player:move"
+              data:
+                x: "{{ $randomNumber(100, 500) }}"
+                y: "{{ $randomNumber(100, 500) }}"
+                direction: "down"
+                frame: 0
+          - think: 1
+        count: 10

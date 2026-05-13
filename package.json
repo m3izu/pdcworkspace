@@ -18,6 +18,8 @@
     "uuid": "^9.0.1"
   },
   "devDependencies": {
+    "artillery": "^2.0.31",
+    "artillery-engine-socketio-v3": "^1.2.0",
     "concurrently": "^8.2.2",
     "vite": "^5.4.0"
   }

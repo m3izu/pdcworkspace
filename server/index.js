@@ -63,13 +63,17 @@ io.on('connection', (socket) => {
         socket.id, playerName, avatarId, mapId
       );
       socket.join(code);
-      callback({
-        success: true,
-        code,
-        lobby: lobbyManager.serializeLobby(code)
-      });
+      if (typeof callback === 'function') {
+        callback({
+          success: true,
+          code,
+          lobby: lobbyManager.serializeLobby(code)
+        });
+      }
     } catch (err) {
-      callback({ success: false, error: err.message });
+      if (typeof callback === 'function') {
+        callback({ success: false, error: err.message });
+      }
     }
   });
 
@@ -77,7 +81,10 @@ io.on('connection', (socket) => {
   socket.on('join-lobby', ({ code, playerName, avatarId }, callback) => {
     const result = lobbyManager.joinLobby(code, socket.id, playerName, avatarId);
     if (!result.success) {
-      return callback({ success: false, error: result.error });
+      if (typeof callback === 'function') {
+        return callback({ success: false, error: result.error });
+      }
+      return;
     }
 
     socket.join(code);
@@ -89,7 +96,9 @@ io.on('connection', (socket) => {
       lobby: serialized
     });
 
-    callback({ success: true, lobby: serialized });
+    if (typeof callback === 'function') {
+      callback({ success: true, lobby: serialized });
+    }
   });
 
   // ── Player Movement ────────────────────────────────────
@@ -169,7 +178,9 @@ io.on('connection', (socket) => {
 
   // ── Music Player ───────────────────────────────────────
   socket.on('music:get-list', (callback) => {
-    callback({ songs: lobbyManager.availableSongs });
+    if (typeof callback === 'function') {
+      callback({ songs: lobbyManager.availableSongs });
+    }
   });
 
   socket.on('music:control', ({ command, songId }) => {
