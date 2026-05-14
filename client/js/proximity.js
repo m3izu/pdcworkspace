@@ -7,15 +7,18 @@ const PROXIMITY_THRESHOLD = 150; // pixels
 const MAX_DISTANCE = 250;        // for volume scaling
 const CHECK_INTERVAL = 200;      // ms between proximity checks
 const MAX_ACTIVE_CALLS = 5;      // maximum simultaneous WebRTC connections
+const CALL_RETRY_INTERVAL = 3000; // ms before retrying a failed call
 
 export class ProximityManager {
   constructor(socket) {
     this.socket = socket;
+    this.mySocketId = socket.id;
     this.peer = null;
     this.localStream = null;
     this.activeCalls = new Map();  // socketId -> { call, videoEl }
     this.peerIdMap = new Map();    // socketId -> peerId
     this.callTeardownTimers = new Map(); // socketId -> timeoutId
+    this.callRetryTimers = new Map(); // socketId -> timeoutId
     this.checkTimer = null;
     this.videoPanel = document.getElementById('video-panel');
   }
@@ -151,11 +154,21 @@ export class ProximityManager {
 
   _startCall(socketId) {
     const peerId = this.peerIdMap.get(socketId);
-    if (!peerId || !this.peer || !this.localStream) return;
+    if (!peerId || !this.peer) return;
     if (this.activeCalls.has(socketId)) return;
 
+    // Deterministic call direction: only the player with the smaller socket ID
+    // initiates the call. This prevents both sides from calling each other
+    // simultaneously, which causes duplicate/orphaned WebRTC connections.
+    if (this.mySocketId > socketId) {
+      // We wait for the other side to call us — they have the smaller ID
+      return;
+    }
+
     console.log('[Proximity] Starting call with', socketId);
-    const call = this.peer.call(peerId, this.localStream);
+    const call = this.localStream
+      ? this.peer.call(peerId, this.localStream)
+      : this.peer.call(peerId, new MediaStream()); // call with empty stream if no media
     if (!call) return;
 
     this._handleCallStream(call, socketId);
@@ -170,26 +183,39 @@ export class ProximityManager {
     }
     if (!socketId) return;
 
+    // If we already have an active call with video for this peer, reject the new one
+    if (this.activeCalls.has(socketId)) {
+      const existing = this.activeCalls.get(socketId);
+      if (existing.videoEl) {
+        call.close();
+        return;
+      }
+    }
+
     call.on('stream', (remoteStream) => {
-      // Don't duplicate
+      // Check again — another stream may have arrived while we waited
       if (this.activeCalls.has(socketId)) {
         const existing = this.activeCalls.get(socketId);
-        if (existing.videoEl) return;
+        if (existing.videoEl) return; // already displaying video
       }
 
+      console.log('[Proximity] Received stream from', socketId);
       const videoEl = this._createVideoTile(socketId, remoteStream);
       this.activeCalls.set(socketId, { call, videoEl });
+      this._updateBroadcastUI();
     });
 
     call.on('close', () => {
       this._removeVideoTile(socketId);
       this.activeCalls.delete(socketId);
+      this._updateBroadcastUI();
     });
 
     call.on('error', (err) => {
-      console.warn('[Proximity] Call error:', err);
+      console.warn('[Proximity] Call error with', socketId, ':', err);
       this._removeVideoTile(socketId);
       this.activeCalls.delete(socketId);
+      this._updateBroadcastUI();
     });
 
     // Store call even before stream arrives
@@ -302,6 +328,10 @@ export class ProximityManager {
     for (const [sid] of this.activeCalls) {
       this._endCall(sid);
     }
+    for (const [, timer] of this.callRetryTimers) {
+      clearTimeout(timer);
+    }
+    this.callRetryTimers.clear();
     if (this.peer) this.peer.destroy();
     if (this.localStream) {
       this.localStream.getTracks().forEach(t => t.stop());
